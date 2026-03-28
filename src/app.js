@@ -14,17 +14,19 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
-// Security Headers
+// Security Headers - Relaxed for compatibility with inline handlers and CDN resources
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      "default-src": ["'self'"],
+      "default-src": ["'self'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
       "script-src":  ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+      "script-src-attr": ["'unsafe-inline'"], // Required for onclick="..." handlers
       "style-src":   ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
       "font-src":    ["'self'", "https://fonts.gstatic.com"],
       "img-src":     ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
-      "connect-src": ["'self'", "https://router.project-osrm.org"],
+      "connect-src": ["'self'", "https://router.project-osrm.org", "https://unpkg.com", "https://cdn.jsdelivr.net"],
       "worker-src":  ["'self'", "blob:"],
+      "upgrade-insecure-requests": null,
     },
   },
 }));
