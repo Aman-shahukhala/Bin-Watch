@@ -14,7 +14,7 @@ exports.login = async (req, res) => {
     req.session.userId = user._id;
     req.session.save((err) => {
       if (err) {
-        return res.status(500).json({ error: "Failed to establish secure session" });
+        return res.status(500).json({ error: "Failed to establish secure session: " + err.message });
       }
       res.json({ success: true });
     });
