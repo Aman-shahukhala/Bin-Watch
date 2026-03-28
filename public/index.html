@@ -94,7 +94,7 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-x: hidden; /* prevent horizontal bleed only */
     }
 
     /* ── Leaflet & Routing Overrides ── */
@@ -422,7 +422,9 @@
       .detail-grid { grid-template-columns: 1fr; }
       .settings-grid { grid-template-columns: 1fr; }
       .map-container { grid-template-columns: 1fr; height: auto; }
-      .map-sidebar { height: 400px; }
+      /* On tablet/mobile, let map keep its height and sidebar grow naturally */
+      #map { height: 400px; }
+      .map-sidebar { height: auto; min-height: 300px; }
     }
 
     @media (max-width: 600px) {
