@@ -1,0 +1,17 @@
+{
+  "name": "BinWatch Pro",
+  "short_name": "BinWatch",
+  "description": "Professional IoT Waste Logistics & Fleet Management",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#1E293B",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

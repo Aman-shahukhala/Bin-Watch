@@ -8,13 +8,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-  
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <meta name="theme-color" content="#1E293B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icon-512.png">
   <style>
     /* ── Light Mode (Default) ───────────────── */
     :root {
@@ -430,13 +433,7 @@
 
 <header>
   <div class="logo">
-    <div class="logo-icon">
-      <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
-        <rect x="4" y="5" width="10" height="11" rx="2" fill="#064E3B"/>
-        <rect x="2" y="3" width="14" height="3" rx="1" fill="#064E3B"/>
-        <rect x="7" y="1" width="4" height="3" rx="1" fill="#064E3B"/>
-      </svg>
-    </div>
+    <img src="/logo.png" alt="BinWatch Pro" style="height: 38px; border-radius: 8px;">
     BinWatch Pro
   </div>
   <nav>
@@ -1780,6 +1777,12 @@
 
   window.onload = () => {
     loadSettings();
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('BinWatch PWA Ready'))
+        .catch(err => console.error('PWA Fail:', err));
+    }
     // Allow audio on first click
     document.body.addEventListener('click', () => {
       if (audioCtx.state === 'suspended') audioCtx.resume();
