@@ -979,8 +979,7 @@
       document.getElementById('set-depot-lng').value = systemSettings.depotLng;
 
       restartPolling();
-      if (!map) initMap();
-      else updateDepotPointer();
+      updateDepotPointer(); // depot pointer safe to call; it guards !map internally
     } catch (e) {
       console.error("Settings Load Error:", e);
     }
@@ -1043,12 +1042,16 @@
 
     currentView = view;
     if (view === 'map') {
-      setTimeout(() => {
-        if (!map) initMap();
-        if (map) map.invalidateSize();
-        if (currentUser && currentUser.role === 'admin') fetchTeam();
-        updateMapSidebar();
-      }, 150);
+      // The view is now visible — safe to init Leaflet here
+      if (!map) {
+        initMap();
+        // Give the DOM a moment to paint, then force Leaflet to measure correctly
+        setTimeout(() => { map.invalidateSize(); }, 300);
+      } else {
+        setTimeout(() => { map.invalidateSize(); }, 300);
+      }
+      if (currentUser && currentUser.role === 'admin') fetchTeam();
+      updateMapSidebar();
     }
     if (view === 'analytics') updateAnalytics();
     if (view === 'team') fetchTeam();
