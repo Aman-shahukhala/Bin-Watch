@@ -12,7 +12,12 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: "Invalid username or password" });
     }
     req.session.userId = user._id;
-    res.json({ success: true });
+    req.session.save((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to establish secure session" });
+      }
+      res.json({ success: true });
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
