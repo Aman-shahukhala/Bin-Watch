@@ -323,6 +323,7 @@
     <button class="nav-btn active" onclick="switchView('status')">Live Status</button>
     <button class="nav-btn" onclick="switchView('map')">Geographic Map</button>
     <button class="nav-btn" onclick="switchView('settings')">Settings</button>
+    <button class="nav-btn" style="color: var(--accent-red);" onclick="logout()">End Session</button>
   </nav>
 </header>
 
@@ -529,6 +530,15 @@
 </div>
 
 <script>
+  async function logout() {
+    try {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  }
+
   let currentView = 'status';
   let binsData = {};
   let lastPctMap = {};
@@ -730,6 +740,10 @@
   async function fetchData() {
     try {
       const res = await fetch('/data');
+      if (res.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
       const bins = await res.json();
       binsData = bins;
       const binIds = Object.keys(bins);
@@ -934,14 +948,119 @@
     }
   }
 
+  let largeChart = null;
+
   function openDetail(id) {
-    // Basic detail view (already implemented in index.html, calling helper)
     document.getElementById('view-status').classList.remove('active');
     document.getElementById('view-detail').classList.add('active');
-    // Call existing renderDetail logic if available or just update IDs
-    const d = binsData[id];
-    document.getElementById('detail-name').textContent = d.nickname || id;
+    
+    activeBinId = id;
+    const bin = binsData[id];
+    
+    // Header setup
+    const pct = Math.round(bin.fill_percent) || 0;
+    const s = getStatusStyle(pct, bin.last_seen);
+    document.getElementById('detail-name').textContent = bin.nickname || id;
     document.getElementById('detail-id').textContent = `Device ID: ${id}`;
+    
+    const badge = document.getElementById('detail-badge');
+    badge.className = `badge ${s.badge}`;
+    badge.textContent = s.label === 'Offline' ? 'Unreachable' : 'Live';
+
+    const history = bin.history || [];
+
+    // Analytics Calculation
+    if (history.length > 1) {
+      const first = history[0];
+      const last = history[history.length - 1];
+      const dFill = last.fill - first.fill;
+      const dTime = (new Date(last.timestamp) - new Date(first.timestamp)) / 1000 / 3600; // in hours
+      
+      let rate = 0;
+      if (dTime > 0 && dFill > 0) rate = dFill / dTime;
+      
+      document.getElementById('detail-rate').textContent = rate > 0 ? `+${rate.toFixed(1)}% / hr` : 'Stable';
+      
+      if (rate > 0 && pct < 100) {
+        const hrsToFull = (100 - pct) / rate;
+        document.getElementById('detail-ttf').textContent = hrsToFull < 1 ? '< 1 Hour' : `${Math.round(hrsToFull)} Hours`;
+      } else {
+        document.getElementById('detail-ttf').textContent = pct >= 100 ? 'FULL' : '--';
+      }
+    } else {
+      document.getElementById('detail-rate').textContent = '--';
+      document.getElementById('detail-ttf').textContent = '--';
+    }
+
+    // Timeline Table
+    const tbody = document.getElementById('history-body');
+    tbody.innerHTML = history.slice().reverse().slice(0, 50).map(h => {
+      const hpct = Math.round(h.fill);
+      const hs = getStatusStyle(hpct, new Date()); // mock styling based on fill percent
+      return `
+        <tr>
+          <td>${h.time}</td>
+          <td style="font-weight:800; color:${hs.text}">${hpct}%</td>
+          <td>--</td>
+          <td><span class="badge ${hs.badge}">${hs.label}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+    // Chart Rendering
+    const ctx = document.getElementById('large-chart');
+    if (largeChart) largeChart.destroy();
+    
+    largeChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: history.map(h => h.time),
+        datasets: [{
+          label: 'Fill Level %',
+          data: history.map(h => h.fill),
+          borderColor: '#1A1A2E',
+          borderWidth: 3,
+          backgroundColor: 'rgba(26, 26, 46, 0.05)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#4ADE80'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, grid: { color: '#F8FAFC' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  async function sendTestAlert() {
+    showToast("🔔 Triggering test alert...", "var(--accent-amber)");
+    try {
+      await fetch('/test-alert', { method: 'POST' });
+      addAlert("System: Test alert email requested.", "var(--accent-green)");
+      showToast("✓ Alert action completed", "var(--accent-green)");
+    } catch(e) {
+      showToast("⚠ Failed to trigger alert", "var(--accent-red)");
+    }
+  }
+
+  async function resetBinHistory() {
+    if(!activeBinId) return;
+    if(confirm('Are you sure you want to permanently clear the history timeline for this bin?')) {
+      try {
+        await fetch(`/reset-history/${activeBinId}`, { method: 'POST' });
+        showToast("× History purged", "var(--accent-red)");
+        addAlert(`System: History purged for ${activeBinId}`, "var(--accent-red)");
+        switchView('status');
+      } catch(e) {
+        showToast("⚠ Failed to reset history", "var(--accent-red)");
+      }
+    }
   }
 
   window.onload = () => {
