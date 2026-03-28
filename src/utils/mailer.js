@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 
-const SENDER_EMAIL = "aman.shahukhala@gmail.com";
-const SENDER_PASSWORD = "viuykmsbaxprlnns";
+const SENDER_EMAIL = process.env.EMAIL_USER;
+const SENDER_PASSWORD = process.env.EMAIL_PASS;
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -9,6 +9,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendAlertEmail = async (receiverEmail, binId, fillPercent) => {
+  if (!SENDER_EMAIL || !SENDER_PASSWORD) {
+    console.error("[EMAIL] Email credentials not configured in environment variables.");
+    return;
+  }
   const mailOptions = {
     from: SENDER_EMAIL,
     to: receiverEmail,

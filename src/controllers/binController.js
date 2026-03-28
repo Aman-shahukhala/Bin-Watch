@@ -11,8 +11,8 @@ const calculateFill = (distance, binHeight) => {
 
 exports.updateBin = async (req, res) => {
   const { id, distance, lat, lng } = req.body;
-  if (!id || distance === undefined) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!id || typeof id !== 'string' || distance === undefined) {
+    return res.status(400).json({ error: "Invalid data format or missing fields" });
   }
 
   try {
@@ -75,7 +75,7 @@ exports.updateBin = async (req, res) => {
 
     res.json({ success: true, bin, recorded: shouldPushHistory });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "An error occurred while updating the node" });
   }
 };
 
@@ -102,12 +102,12 @@ exports.renameBin = async (req, res) => {
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   const { id, nickname, binHeight } = req.body;
   try {
-    const update = { nickname };
-    if (binHeight !== undefined) update.binHeight = binHeight;
-    await Bin.updateOne({ id }, { $set: update });
+    const update = { nickname: String(nickname) };
+    if (binHeight !== undefined) update.binHeight = Number(binHeight);
+    await Bin.updateOne({ id: String(id) }, { $set: update });
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Failed to apply naming configuration" });
   }
 };
 

@@ -3,6 +3,12 @@ const User = require('../models/User');
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    // Type checking to prevent NoSQL injection via objects
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: "Invalid input format" });
+    }
+
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: "Invalid username or password" });
@@ -18,13 +24,13 @@ exports.login = async (req, res) => {
     req.session.assignedBins = user.assignedBins || [];
     req.session.save((err) => {
       if (err) {
-        return res.status(500).json({ error: "Failed to establish secure session: " + err.message });
+        return res.status(500).json({ error: "Session establishment failed" });
       }
       res.json({ success: true, role: role });
     });
     return; // early exit after custom handling
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "An internal server error occurred" });
   }
 };
 
@@ -44,7 +50,7 @@ exports.me = async (req, res) => {
       assignedBins: user.assignedBins 
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Identity verification failed" });
   }
 };
 
@@ -59,13 +65,13 @@ exports.seedAdmin = async () => {
     if (!admin) {
       admin = new User({ username: 'admin', password: 'admin123', role: 'admin' });
       await admin.save();
-      console.log("[AUTH] Default admin user created (admin / admin123)");
+      console.warn("[SECURITY] ATTENTION: Default admin user created (admin / admin123). CHANGE THIS PASSWORD IMMEDIATELY.");
     } else if (!admin.role) {
       // Repair: patch missing role for admin accounts created before RBAC
       await User.updateOne({ username: 'admin' }, { $set: { role: 'admin' } });
       console.log("[AUTH] Admin role patched in database.");
     }
   } catch (err) {
-    console.error("[AUTH] Error seeding admin:", err.message);
+    console.error("[AUTH] Error seeding admin:", "An error occurred during database setup");
   }
 };

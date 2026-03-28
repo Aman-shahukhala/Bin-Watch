@@ -9,7 +9,27 @@ const authRoutes = require("./routes/authRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const authMiddleware = require("./middleware/auth");
 
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+
 const app = express();
+
+// Security Headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+      "img-src": ["'self'", "data:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
+    },
+  },
+}));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { error: "Too many login attempts, please try again later." }
+});
 
 const store = new MongoDBStore({
   uri: process.env.MONGODB_URI,
@@ -21,13 +41,17 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: store,
+  name: '__binwatch_sid', // customized session ID
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
   }
 }));
 
 app.use(express.json());
-app.use("/auth", authRoutes);
+app.use("/auth", authLimiter, authRoutes);
 app.use("/api/settings", authMiddleware, settingsRoutes);
 app.use("/api/team", authMiddleware, teamRoutes);
 

@@ -9,7 +9,7 @@ exports.getSettings = async (req, res) => {
     }
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "An unexpected error occurred while fetching configuration settings" });
   }
 };
 
@@ -23,6 +23,6 @@ exports.updateSettings = async (req, res) => {
     );
     res.json({ success: true, settings });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "An unexpected error occurred while applying configuration settings" });
   }
 };
