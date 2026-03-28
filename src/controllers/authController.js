@@ -11,7 +11,7 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
-    req.session.userId = user._id;
+    req.session.userId = user._id.toString();
     req.session.save((err) => {
       if (err) {
         return res.status(500).json({ error: "Failed to establish secure session: " + err.message });
