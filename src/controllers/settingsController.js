@@ -19,7 +19,7 @@ exports.updateSettings = async (req, res) => {
     const settings = await Settings.findOneAndUpdate(
       { id: "global_settings" },
       { $set: { pollingInterval, emailAlertsEnabled, alertThreshold, receiverEmail, soundAlertsEnabled, depotLat, depotLng } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
     res.json({ success: true, settings });
   } catch (err) {

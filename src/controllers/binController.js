@@ -59,7 +59,7 @@ exports.updateBin = async (req, res) => {
     bin = await Bin.findOneAndUpdate(
       { id },
       updateQuery,
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // Email alert logic
