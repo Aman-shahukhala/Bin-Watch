@@ -1,4 +1,4 @@
-const CACHE_NAME = 'binwatch-v2';
+const CACHE_NAME = 'binwatch-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -37,7 +37,12 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).catch(err => {
          console.warn('[SW] Fetch failed; returning offline error.', err);
-         // Optionally return a specific offline page here
+         // Return a fallback response to prevent "Failed to convert value to 'Response'" TypeError
+         return new Response(JSON.stringify({ error: "Offline / Unreachable" }), {
+           status: 503,
+           statusText: "Service Unavailable",
+           headers: new Headers({ 'Content-Type': 'application/json' })
+         });
       });
     })
   );
