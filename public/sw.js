@@ -5,14 +5,11 @@ const ASSETS = [
   '/logo.png',
   '/icon-512.png',
   '/favicon.png',
-  'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css',
   'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css',
-  'https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js',
-  'https://cdn.jsdelivr.net/npm/chart.js',
-  'https://unpkg.com/lucide@latest'
+  'https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css'
+  // NOTE: JS scripts are intentionally NOT cached to preserve load order
 ];
 
 self.addEventListener('install', (event) => {
@@ -37,12 +34,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).catch(err => {
          console.warn('[SW] Fetch failed; returning offline error.', err);
-         // Return a fallback response to prevent "Failed to convert value to 'Response'" TypeError
-         return new Response(JSON.stringify({ error: "Offline / Unreachable" }), {
-           status: 503,
-           statusText: "Service Unavailable",
-           headers: new Headers({ 'Content-Type': 'application/json' })
-         });
+         // Optionally return a specific offline page here
       });
     })
   );
