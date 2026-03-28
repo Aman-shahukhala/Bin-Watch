@@ -18,29 +18,30 @@
   <style>
     /* ── Light Mode (Default) ───────────────── */
     :root {
-      --bg: #F7F5F0;
-      --header: #1A1A2E;
+      --bg: #F5F7FA;
+      --header: #1E293B;
       --header-border: transparent;
       --card-bg: #FFFFFF;
-      --card-border: rgba(0,0,0,0.05);
-      --card-shadow: 0 4px 20px rgba(0,0,0,0.05);
-      --accent-green: #4ADE80;
-      --accent-amber: #FBBF24;
+      --card-border: #E2E8F0;
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      --accent-green: #10B981;
+      --accent-amber: #F59E0B;
       --accent-red: #EF4444;
-      --text-main: #1A1A2E;
-      --text-muted: #888780;
-      --nav-active: #4ADE80;
+      --accent-blue: #3B82F6;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --nav-active: #10B981;
       --nav-inactive: rgba(255,255,255,0.45);
       --offline: #94A3B8;
-      --input-bg: #F1F5F9;
+      --input-bg: #F8FAFC;
       --input-border: #E2E8F0;
-      --toggle-bg: #F8FAFC;
+      --toggle-bg: #F1F5F9;
       --log-bg: #FFFFFF;
-      --log-border: #F8FAFC;
-      --table-border: #F1F5F9;
+      --log-border: #F1F5F9;
+      --table-border: #E2E8F0;
       --bin-outer-bg: #F8FAFC;
       --bin-outer-border: #E2E8F0;
-      --bin-lid: #E2E8F0;
+      --bin-lid: #CBD5E1;
       --ctl-btn-bg: #F1F5F9;
       --ctl-btn-color: #475569;
       --modal-bg: #FFFFFF;
@@ -52,27 +53,27 @@
     /* ── Dark "Stealth" Mode (via JS data-theme attribute) ── */
     [data-theme="dark"] {
       color-scheme: dark;
-      --bg: #080D1A;
-      --header: #0C1222;
+      --bg: #0F172A;
+      --header: #1E293B;
       --header-border: rgba(255,255,255,0.06);
-      --card-bg: rgba(255,255,255,0.04);
-      --card-border: rgba(255,255,255,0.08);
-      --card-shadow: 0 4px 30px rgba(0,0,0,0.4);
-      --text-main: #EDF2F7;
-      --text-muted: #6B7FA3;
+      --card-bg: #1E293B;
+      --card-border: rgba(255,255,255,0.06);
+      --card-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
       --nav-inactive: rgba(255,255,255,0.35);
-      --input-bg: rgba(255,255,255,0.06);
+      --input-bg: #0F172A;
       --input-border: rgba(255,255,255,0.1);
-      --toggle-bg: rgba(255,255,255,0.05);
-      --log-bg: rgba(255,255,255,0.04);
+      --toggle-bg: #0F172A;
+      --log-bg: #1E293B;
       --log-border: rgba(255,255,255,0.05);
-      --table-border: rgba(255,255,255,0.07);
-      --bin-outer-bg: rgba(255,255,255,0.04);
-      --bin-outer-border: rgba(255,255,255,0.12);
+      --table-border: rgba(255,255,255,0.06);
+      --bin-outer-bg: #0F172A;
+      --bin-outer-border: rgba(255,255,255,0.1);
       --bin-lid: rgba(255,255,255,0.15);
       --ctl-btn-bg: rgba(255,255,255,0.08);
-      --ctl-btn-color: #A0AEC0;
-      --modal-bg: #111827;
+      --ctl-btn-color: #94A3B8;
+      --modal-bg: #1E293B;
       --map-border: rgba(255,255,255,0.06);
       --section-border: rgba(255,255,255,0.08);
       --chart-grid: rgba(255,255,255,0.05);
@@ -242,8 +243,9 @@
       border-radius: 20px;
       box-shadow: var(--card-shadow);
       border: 1px solid var(--card-border);
-      transition: background 0.3s, border-color 0.3s;
+      transition: transform 0.3s, background 0.3s, border-color 0.3s;
     }
+    .stat-card:hover { transform: translateY(-3px); }
 
     .stat-val { font-family: 'Nunito', sans-serif; font-size: 34px; font-weight: 800; margin-bottom: 4px; }
     .stat-label { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -266,8 +268,9 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
-      transition: background 0.3s;
+      transition: transform 0.3s, background 0.3s;
     }
+    .bin-card:hover { transform: translateY(-4px); }
 
     .bin-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .bin-name-wrap { display: flex; flex-direction: column; gap: 2px; }
@@ -302,10 +305,10 @@
 
     .bin-chart-wrap { height: 120px; margin-top: 10px; border-top: 1px solid var(--table-border); padding-top: 10px; }
 
-    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
-    .badge.ok     { background: #DCFCE7; color: #166534; }
-    .badge.warn   { background: #FEF3C7; color: #92400E; }
-    .badge.danger { background: #FEE2E2; color: #991B1B; }
+    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; border: 1px solid transparent; }
+    .badge.ok     { background: rgba(16, 185, 129, 0.1); color: #10B981; border-color: rgba(16, 185, 129, 0.2); }
+    .badge.warn   { background: rgba(245, 158, 11, 0.1); color: #F59E0B; border-color: rgba(245, 158, 11, 0.2); }
+    .badge.danger { background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: rgba(239, 68, 68, 0.2); }
 
     /* Map View */
     #map { height: 600px; width: 100%; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 4px solid var(--map-border); transition: border-color 0.3s; }
@@ -327,10 +330,10 @@
 
     /* Modal Style */
     .modal-overlay {
-      position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); 
-      display: none; align-items:center; justify-content:center; z-index: 2000;
+      position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.7); 
+      backdrop-filter: blur(8px); display: none; align-items:center; justify-content:center; z-index: 2000;
     }
-    .modal { background: var(--modal-bg); color: var(--text-main); padding: 32px; border-radius: 24px; width: 340px; display: flex; flex-direction: column; gap: 20px; border: 1px solid var(--card-border); }
+    .modal { background: var(--modal-bg); color: var(--text-main); padding: 32px; border-radius: 28px; width: 380px; display: flex; flex-direction: column; gap: 20px; border: 1px solid var(--card-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     .modal h3 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; }
     .modal input, .modal select { 
       padding: 12px 16px; border: 2px solid var(--input-border); border-radius: 12px; 
@@ -415,6 +418,11 @@
       
       .bin-card { padding: 16px; }
       .modal { width: 90%; padding: 24px; }
+    }
+
+    @keyframes pulse-amber {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(3); opacity: 0; }
     }
   </style>
 </head>
@@ -596,7 +604,7 @@
 
   <!-- ANALYTICS VIEW -->
   <div id="view-analytics" class="view">
-    <div class="summary-row">
+    <div class="summary-row" id="global-stats-row">
       <div class="stat-card">
         <div class="stat-label">Efficiency Index</div>
         <div id="global-efficiency" class="stat-val">--%</div>
@@ -706,12 +714,17 @@
                 <input type="number" id="set-depot-lng" step="0.000001" required>
               </div>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-              <div class="toggle-wrap" style="flex: 1;">
-                <span>Email Notifications</span>
-                <input type="checkbox" id="set-email-on" style="width: 20px; height: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+              <div style="display: flex; gap: 10px;">
+                <div class="toggle-wrap" style="flex: 1;">
+                  <span>Email Notifications</span>
+                  <input type="checkbox" id="set-email-on" style="width: 20px; height: 20px;">
+                </div>
+                <button type="button" class="ctl-btn" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border);" onclick="playAlertSound()">Test Alarm</button>
               </div>
-              <button type="button" class="ctl-btn" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border);" onclick="playAlertSound()">Test Dashboard Alarm</button>
+              <button type="button" id="notif-btn" class="ctl-btn" style="width: 100%; height: 48px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--toggle-bg); display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="requestNotificationPermission()">
+                <i data-lucide="bell-ring" style="width:16px;"></i> Enable Desktop Alerts
+              </button>
             </div>
           </div>
         </div>
@@ -866,6 +879,10 @@
       if (isAdmin) {
          fetchTeam();
          updateMapSidebar();
+         document.getElementById('global-stats-row').style.display = 'grid';
+      } else {
+         document.getElementById('global-stats-row').style.display = 'none';
+         updateMapSidebar();
       }
     }
 
@@ -927,6 +944,25 @@
     osc.stop(audioCtx.currentTime + 0.5);
     
     showToast("🔔 Test Alarm Playback Stimulated", 'var(--accent-amber)');
+  }
+
+  function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+      showToast("Browser does not support notifications", "var(--accent-red)");
+      return;
+    }
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        showToast("Notifications Enabled!", "var(--accent-green)");
+        document.getElementById('notif-btn').style.display = 'none';
+      }
+    });
+  }
+
+  function showNativeNotification(title, body) {
+    if (Notification.permission === "granted") {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    }
   }
 
   async function loadSettings() {
@@ -1128,13 +1164,17 @@
 
     list.innerHTML = filtered.map(b => {
       const pct = Math.round(b.fill_percent);
+      const pred = calculateGrowthPredictor(b);
+      const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
       const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
+      
       return `
-        <div class="map-item-card" onclick="zoomToBin('${b.id}')">
+        <div class="map-item-card" onclick="zoomToBin('${b.id}')" style="${isPredictive ? 'border-left: 3px solid var(--accent-amber);' : ''}">
           <div style="display:flex; justify-content:space-between; align-items:center;">
              <div style="font-weight:700; font-size:13px;">${b.nickname || b.id}</div>
              <div style="font-size:11px; color:${color}; font-weight:800;">${pct}%</div>
           </div>
+          ${isPredictive ? `<div style="font-size:9px; color:var(--accent-amber); font-weight:700; margin-top:2px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
           <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
         </div>
       `;
@@ -1290,11 +1330,17 @@
     bins.forEach(b => {
       const pct = Math.round(b.fill_percent) || 0;
       const s = getStatusStyle(pct, b.last_seen);
-      
+      const pred = calculateGrowthPredictor(b);
+      const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
+
       const marker = L.marker([b.lat, b.lng], {
         icon: L.divIcon({
           className: 'custom-div-icon',
-          html: `<div class="marker-pin ${s.badge}" style="background-color: ${s.color}; border:4px solid var(--card-bg); width:24px; height:24px; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.2);"></div>`,
+          html: `
+            <div class="marker-pin ${s.badge}" style="background-color: ${s.color}; border:4px solid var(--card-bg); width:24px; height:24px; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.2); position:relative;">
+              ${isPredictive ? '<div style="position:absolute; top:-4px; left:-4px; right:-4px; bottom:-4px; border:2px solid var(--accent-amber); border-radius:50%; animation: pulse-amber 1.5s ease-out infinite;"></div>' : ''}
+            </div>
+          `,
           iconSize: [24, 24],
           iconAnchor: [12, 12]
         })
@@ -1304,6 +1350,7 @@
         <div style="font-family:'DM Sans'; padding:4px;">
           <h3 style="font-size:16px; margin-bottom:4px;">${b.nickname || b.id}</h3>
           <div style="font-size:24px; font-weight:800; color:${s.color};">${pct}% Full</div>
+          ${isPredictive ? `<div style="font-size:11px; color:var(--accent-amber); font-weight:700; margin-top:4px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
           <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
           <button class="test-btn" style="width:100%; margin-top:10px; font-size:11px;" onclick="openDetail('${b.id}')">View Full Analytics</button>
         </div>
@@ -1416,6 +1463,7 @@
         if (lastPct !== -1 && pct >= systemSettings.alertThreshold && lastPct < systemSettings.alertThreshold) {
           addAlert(`CRITICAL: ${bin.nickname || id} reached ${pct}%!`, '#EF4444');
           playAlertSound();
+          showNativeNotification("CRITICAL ALERT", `${bin.nickname || id} is ${pct}% FULL!`);
         }
         lastPctMap[id] = pct;
 
@@ -1485,7 +1533,11 @@
     if (routingControl) map.removeControl(routingControl);
     
     const fullBins = Object.values(binsData)
-      .filter(b => Math.round(b.fill_percent) >= systemSettings.alertThreshold)
+      .filter(b => {
+        const pct = Math.round(b.fill_percent);
+        const pred = calculateGrowthPredictor(b);
+        return pct >= systemSettings.alertThreshold || (pred.trend === 'up' && pred.hours > 0 && pred.hours < 12);
+      })
       .sort((a, b) => {
         // Nearest neighbor distance from depot (simplified)
         const d1 = Math.sqrt(Math.pow(a.lat - systemSettings.depotLat, 2) + Math.pow(a.lng - systemSettings.depotLng, 2));
