@@ -614,14 +614,23 @@
           <button class="test-btn" style="width:100%; margin-top:12px; font-size:13px; height:44px; border-radius:12px;" onclick="generateRoute()">
             <i data-lucide="route" style="width:16px; margin-right:8px; vertical-align:middle;"></i> Generate Optimized Route
           </button>
+          
+          <button id="driver-shift-btn" class="ctl-btn" style="display:none; width:100%; margin-top:12px; font-size:13px; height:44px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); font-weight:700;" onclick="toggleDriverShift()">
+            <i data-lucide="radio" style="width:16px; margin-right:8px; vertical-align:middle;"></i> <span id="driver-shift-text">Start Shift (Broadcast GPS)</span>
+          </button>
         </div>
 
         <div class="map-sidebar-list" id="map-sidebar-list">
           <!-- Bins dynamically here -->
         </div>
+        
+        <div id="routing-panel" style="display:none; flex:1; overflow-y:auto; padding:12px; margin-bottom:12px;"></div>
 
         <div class="nav-status-box" id="nav-status-box" style="display:none; margin-top:auto;">
-          <div style="font-size:10px; font-weight:700; opacity:0.6; text-transform:uppercase; margin-bottom:8px;">Current Route Status</div>
+          <div style="font-size:10px; font-weight:700; opacity:0.6; text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+             <span>Current Route Status</span>
+             <button class="ctl-btn del" onclick="clearRoute()" style="padding:4px 8px; font-size:9px;">Clear Route</button>
+          </div>
           <div id="route-current" style="font-weight:700; font-size:14px;">Next: --</div>
           <div id="route-next" style="font-size:12px; opacity:0.8; margin-top:2px;">Then: --</div>
         </div>
@@ -948,6 +957,10 @@
   let pollingTimer = null;
   let routingControl = null;
   let depotMarker = null;
+  let fleetMarkerGroup = null;
+  let fleetMarkers = {};
+  let shiftWatchId = null;
+  let isShiftActive = false;
 
   // Audio Context for Alerts
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1057,7 +1070,11 @@
   function restartPolling() {
     if (pollingTimer) clearInterval(pollingTimer);
     fetchData();
-    pollingTimer = setInterval(fetchData, systemSettings.pollingInterval * 1000);
+    if (currentUser && currentUser.role === 'admin') fetchTeam(); // keep fleet data live
+    pollingTimer = setInterval(() => {
+      fetchData();
+      if (currentUser && currentUser.role === 'admin') fetchTeam();
+    }, systemSettings.pollingInterval * 1000);
   }
 
   function switchView(view) {
@@ -1113,6 +1130,99 @@
 
       if (window.lucide) lucide.createIcons();
     } catch (err) { console.error("Fetch Team Error:", err); }
+  }
+
+  async function toggleDriverShift() {
+    isShiftActive = !isShiftActive;
+    const btn = document.getElementById('driver-shift-btn');
+    const txt = document.getElementById('driver-shift-text');
+    const icon = btn.querySelector('i');
+    
+    if (isShiftActive) {
+      btn.style.background = 'var(--accent-red)';
+      btn.style.color = 'white';
+      txt.textContent = 'End Shift (Stop Broadcasting)';
+      icon.setAttribute('data-lucide', 'square');
+      if (window.lucide) lucide.createIcons();
+      showToast("Starting GPS broadcast...", "var(--accent-green)");
+
+      if (navigator.geolocation) {
+        shiftWatchId = navigator.geolocation.watchPosition(
+          async (pos) => {
+            try {
+              await fetch('/api/team/location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, isOnline: true })
+              });
+            } catch (err) { console.error("Location post error", err); }
+          },
+          (err) => {
+            console.error("GPS Error", err);
+            showToast("GPS Access Denied or Unavailable", "var(--accent-red)");
+            toggleDriverShift(); // auto-turn off
+          },
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+        );
+      } else {
+        showToast("Geolocation not supported", "var(--accent-red)");
+      }
+    } else {
+      btn.style.background = 'var(--accent-green)';
+      btn.style.color = '#064E3B';
+      txt.textContent = 'Start Shift (Broadcast GPS)';
+      icon.setAttribute('data-lucide', 'radio');
+      if (window.lucide) lucide.createIcons();
+      
+      if (shiftWatchId !== null) navigator.geolocation.clearWatch(shiftWatchId);
+      
+      try {
+        await fetch('/api/team/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isOnline: false })
+        });
+      } catch (err) {}
+      showToast("Shift ended. Tracking disabled.", "var(--text-muted)");
+    }
+  }
+
+  function updateFleetMarkers() {
+    if (!map || !fleetMarkerGroup) return;
+    
+    const activeDrivers = teamData.filter(u => u.role === 'driver' && u.isOnline && u.lastLocation && u.lastLocation.lat);
+    const activeDriverIds = activeDrivers.map(d => d._id);
+    
+    // Remove stale markers
+    Object.keys(fleetMarkers).forEach(id => {
+      if (!activeDriverIds.includes(id)) {
+        fleetMarkerGroup.removeLayer(fleetMarkers[id]);
+        delete fleetMarkers[id];
+      }
+    });
+
+    activeDrivers.forEach(d => {
+      const isStale = (new Date() - new Date(d.lastUpdate)) / 1000 / 60 > 15; // >15 mins
+      const color = isStale ? '#94A3B8' : '#3B82F6'; // Blue for active truck, gray for stale
+      
+      const html = `
+        <div style="background:${color}; width:32px; height:32px; border-radius:50%; border:3px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); color:white;">
+          <i data-lucide="truck" style="width:16px; height:16px;"></i>
+        </div>
+      `;
+      
+      if (fleetMarkers[d._id]) {
+        fleetMarkers[d._id].setLatLng([d.lastLocation.lat, d.lastLocation.lng]);
+        fleetMarkers[d._id].setIcon(L.divIcon({ className: '', html, iconSize: [32, 32], iconAnchor: [16, 16] }));
+      } else {
+        fleetMarkers[d._id] = L.marker([d.lastLocation.lat, d.lastLocation.lng], {
+          icon: L.divIcon({ className: '', html, iconSize: [32, 32], iconAnchor: [16, 16] })
+        }).bindPopup(`<b>Driver: ${d.username}</b><br>Updated: ${new Date(d.lastUpdate).toLocaleTimeString()}`);
+        fleetMarkerGroup.addLayer(fleetMarkers[d._id]);
+      }
+    });
+    
+    if (window.lucide) lucide.createIcons();
   }
 
   function openAddStaffModal() {
@@ -1584,7 +1694,32 @@
       createMarker: () => null // Use existing markers
     }).addTo(map);
 
+    // Hide normal list, show routing panel
+    document.getElementById('map-sidebar-list').style.display = 'none';
+    document.getElementById('routing-panel').style.display = 'block';
+
+    // Move routing container to sidebar
+    setTimeout(() => {
+      const rc = document.querySelector('.leaflet-routing-container');
+      if (rc) {
+        rc.style.position = 'static';
+        rc.style.width = '100%';
+        rc.style.boxShadow = 'none';
+        rc.style.maxHeight = 'none';
+        rc.style.margin = '0';
+        document.getElementById('routing-panel').appendChild(rc);
+      }
+    }, 100);
+
     if (window.lucide) lucide.createIcons();
+  }
+
+  function clearRoute() {
+    if (routingControl) map.removeControl(routingControl);
+    routingControl = null;
+    document.getElementById('routing-panel').style.display = 'none';
+    document.getElementById('map-sidebar-list').style.display = 'flex';
+    document.getElementById('nav-status-box').style.display = 'none';
   }
 
   // Common UI Logic

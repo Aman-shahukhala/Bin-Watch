@@ -6,5 +6,6 @@ router.get('/', teamController.getStaff);
 router.post('/', teamController.addStaff);
 router.delete('/:id', teamController.removeStaff);
 router.put('/:id', teamController.updateStaff);
+router.post('/location', teamController.updateLocation);
 
 module.exports = router;

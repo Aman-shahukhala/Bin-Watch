@@ -10,12 +10,9 @@ const teamRoutes = require("./routes/teamRoutes");
 const authMiddleware = require("./middleware/auth");
 
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 
 const app = express();
 
-// Required for express-rate-limit when running behind a reverse proxy (e.g., Render, Heroku)
-app.set('trust proxy', 1);
 
 // Security Headers - Relaxed for compatibility with inline handlers and CDN resources
 app.use(helmet({
@@ -34,11 +31,6 @@ app.use(helmet({
   },
 }));
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: { error: "Too many login attempts, please try again later." }
-});
 
 const store = new MongoDBStore({
   uri: process.env.MONGODB_URI,
@@ -60,7 +52,7 @@ app.use(session({
 }));
 
 app.use(express.json());
-app.use("/auth", authLimiter, authRoutes);
+app.use("/auth", authRoutes);
 app.use("/api/settings", authMiddleware, settingsRoutes);
 app.use("/api/team", authMiddleware, teamRoutes);
 
