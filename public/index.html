@@ -1425,7 +1425,10 @@
 
   function calculateGrowthPredictor(bin) {
     const h = bin.history || [];
-    if (h.length < 5) return { label: "Collecting Data...", trend: "none", hours: -1 };
+    const currFill = Math.round(bin.fill_percent) || 0;
+    
+    if (currFill >= 100) return { label: "FULL", trend: "none", hours: 0 };
+    if (h.length < 5) return { label: "Collecting...", trend: "none", hours: -1 };
     
     // Simple Linear Regression on last 10 points
     const points = h.slice(-10);
@@ -1437,20 +1440,19 @@
     const n = points.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     for (let i = 0; i < n; i++) {
-      sumX += timeline[i];
-      sumY += values[i];
-      sumXY += timeline[i] * values[i];
-      sumX2 += timeline[i] * timeline[i];
+        sumX += timeline[i];
+        sumY += values[i];
+        sumXY += timeline[i] * values[i];
+        sumX2 += timeline[i] * timeline[i];
     }
     const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     
     if (slope <= 0.05) return { label: "Low Impact", trend: "none", hours: -1 };
     
-    const currFill = Math.round(bin.fill_percent);
     const hoursToFull = (100 - currFill) / slope;
     
     let label = "";
-    if (hoursToFull < 1) label = "IMMIMNENT (Full)";
+    if (hoursToFull < 1) label = "< 1 Hour";
     else if (hoursToFull < 24) label = `${Math.round(hoursToFull)} Hours`;
     else label = `${Math.round(hoursToFull / 24)} Days`;
     
@@ -1860,16 +1862,12 @@
     // Reverse engineer the rate if we want to show it, or just use prediction trend
     document.getElementById('detail-rate').textContent = prediction.trend === 'up' ? `Increasing` : 'Stable/Low Impact';
     
-    // Set the Estimated Time To Full using the prediction label
-    if (pct >= 100) {
-      document.getElementById('detail-ttf').textContent = 'FULL';
+    // Set the Estimated Time To Full using the prediction label from centralized regression
+    document.getElementById('detail-ttf').textContent = prediction.label;
+    if (prediction.hours > 0 && prediction.hours < 12) {
+      document.getElementById('detail-ttf').style.color = 'var(--accent-red)';
     } else {
-      document.getElementById('detail-ttf').textContent = prediction.label;
-      if (prediction.hours > 0 && prediction.hours < 12) {
-        document.getElementById('detail-ttf').style.color = 'var(--accent-red)';
-      } else {
-        document.getElementById('detail-ttf').style.color = 'var(--text-main)';
-      }
+      document.getElementById('detail-ttf').style.color = 'var(--text-main)';
     }
 
     // Timeline Table
