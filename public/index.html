@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
@@ -93,6 +94,33 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Leaflet & Routing Overrides ── */
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: var(--card-bg);
+      color: var(--text-main);
+      box-shadow: var(--card-shadow);
+    }
+    
+    .leaflet-routing-container {
+      background-color: var(--card-bg) !important;
+      color: var(--text-main) !important;
+      border-radius: 8px !important;
+      box-shadow: var(--card-shadow) !important;
+      padding-top: 4px !important;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .leaflet-routing-alt {
+      background-color: var(--card-bg) !important;
+      border-bottom: 1px solid var(--card-border) !important;
+    }
+    .leaflet-routing-alt h2, .leaflet-routing-alt h3 {
+      color: var(--text-main) !important;
+    }
+    .leaflet-routing-alt tr:hover {
+      background-color: var(--toggle-bg) !important;
     }
 
     /* Offline state */
@@ -1669,26 +1697,21 @@
     const history = bin.history || [];
 
     // Analytics Calculation
-    if (history.length > 1) {
-      const first = history[0];
-      const last = history[history.length - 1];
-      const dFill = last.fill - first.fill;
-      const dTime = (new Date(last.timestamp) - new Date(first.timestamp)) / 1000 / 3600; // in hours
-      
-      let rate = 0;
-      if (dTime > 0 && dFill > 0) rate = dFill / dTime;
-      
-      document.getElementById('detail-rate').textContent = rate > 0 ? `+${rate.toFixed(1)}% / hr` : 'Stable';
-      
-      if (rate > 0 && pct < 100) {
-        const hrsToFull = (100 - pct) / rate;
-        document.getElementById('detail-ttf').textContent = hrsToFull < 1 ? '< 1 Hour' : `${Math.round(hrsToFull)} Hours`;
-      } else {
-        document.getElementById('detail-ttf').textContent = pct >= 100 ? 'FULL' : '--';
-      }
+    const prediction = calculateGrowthPredictor(bin);
+    
+    // Reverse engineer the rate if we want to show it, or just use prediction trend
+    document.getElementById('detail-rate').textContent = prediction.trend === 'up' ? `Increasing` : 'Stable/Low Impact';
+    
+    // Set the Estimated Time To Full using the prediction label
+    if (pct >= 100) {
+      document.getElementById('detail-ttf').textContent = 'FULL';
     } else {
-      document.getElementById('detail-rate').textContent = '--';
-      document.getElementById('detail-ttf').textContent = '--';
+      document.getElementById('detail-ttf').textContent = prediction.label;
+      if (prediction.hours > 0 && prediction.hours < 12) {
+        document.getElementById('detail-ttf').style.color = 'var(--accent-red)';
+      } else {
+        document.getElementById('detail-ttf').style.color = 'var(--text-main)';
+      }
     }
 
     // Timeline Table
