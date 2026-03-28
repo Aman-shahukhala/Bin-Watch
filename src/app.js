@@ -14,6 +14,9 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+// Required for express-rate-limit when running behind a reverse proxy (e.g., Render, Heroku)
+app.set('trust proxy', 1);
+
 // Security Headers - Relaxed for compatibility with inline handlers and CDN resources
 app.use(helmet({
   contentSecurityPolicy: {
