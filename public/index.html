@@ -1042,7 +1042,8 @@
     currentView = view;
     if (view === 'map') {
       setTimeout(() => {
-        map.invalidateSize();
+        if (!map) initMap();
+        if (map) map.invalidateSize();
         if (currentUser && currentUser.role === 'admin') fetchTeam();
         updateMapSidebar();
       }, 150);
@@ -1187,35 +1188,8 @@
   }
   
   function refreshMarkers() {
-    if (!currentUser) return; // Guard against uninitialized role
-    // Determine which markers should be visible
-    let targetBinIds = null;
-    if (currentUser.role === 'driver') {
-      targetBinIds = currentUser.assignedBins || [];
-    } else if (mapDriverFilter !== 'all') {
-      const targetDriver = teamData.find(u => u._id === mapDriverFilter);
-      targetBinIds = targetDriver?.assignedBins || [];
-    }
-
-    Object.keys(markers).forEach(id => {
-       if (targetBinIds && !targetBinIds.includes(id)) {
-          map.removeLayer(markers[id]);
-       } else {
-          markerGroup.addLayer(markers[id]);
-       }
-    });
-  }
-
-  function zoomToBin(id) {
-    const bin = binsData[id];
-    if (bin && map) {
-      map.setView([bin.lat, bin.lng], 18, { animate: true });
-      if (markers[id]) markers[id].openPopup();
-    }
-  }
-
-  function refreshMarkers() {
-    if (!currentUser) return; // Guard against uninitialized role
+    if (!currentUser || !map || !markerGroup) return; // Guard against uninitialized state
+    
     // Determine which markers should be visible
     let targetBinIds = null;
     if (currentUser.role === 'driver') {
@@ -1230,6 +1204,14 @@
       if (isVisible) markerGroup.addLayer(markers[id]);
       else markerGroup.removeLayer(markers[id]);
     });
+  }
+
+  function zoomToBin(id) {
+    const bin = binsData[id];
+    if (bin && map) {
+      map.setView([bin.lat, bin.lng], 18, { animate: true });
+      if (markers[id]) markers[id].openPopup();
+    }
   }
 
   // ── Analytics Intelligence ────────────────────
@@ -1527,6 +1509,7 @@
   }
 
   function generateRoute() {
+    if (!map) return;
     if (routingControl) map.removeControl(routingControl);
     
     const fullBins = Object.values(binsData)
@@ -1602,7 +1585,7 @@
       const res = await fetch(`/bin/${id}`, { method: 'DELETE' });
       if (res.ok) {
         showToast("Device Removed", 'var(--accent-red)');
-        markerGroup.removeLayer(markers[id]);
+        if (markerGroup && markers[id]) markerGroup.removeLayer(markers[id]);
         delete markers[id];
         document.getElementById(`bin-${id}`).remove();
       }
