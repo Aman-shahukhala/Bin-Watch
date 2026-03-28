@@ -18,9 +18,13 @@ const app = express();
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
-      "img-src": ["'self'", "data:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
+      "default-src": ["'self'"],
+      "script-src":  ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+      "style-src":   ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
+      "font-src":    ["'self'", "https://fonts.gstatic.com"],
+      "img-src":     ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
+      "connect-src": ["'self'", "https://router.project-osrm.org"],
+      "worker-src":  ["'self'", "blob:"],
     },
   },
 }));
