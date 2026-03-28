@@ -6,6 +6,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const authRoutes = require("./routes/authRoutes");
+const teamRoutes = require("./routes/teamRoutes");
 const authMiddleware = require("./middleware/auth");
 
 const app = express();
@@ -27,6 +28,8 @@ app.use(session({
 
 app.use(express.json());
 app.use("/auth", authRoutes);
+app.use("/api/settings", authMiddleware, settingsRoutes);
+app.use("/api/team", authMiddleware, teamRoutes);
 
 // Protect index.html specifically before static middleware
 app.use(['/', '/index.html'], (req, res, next) => {
@@ -47,6 +50,5 @@ app.use("/test-alert", authMiddleware);
 
 // API Routes
 app.use("/", binRoutes);
-app.use("/api/settings", authMiddleware, settingsRoutes);
 
 module.exports = app;

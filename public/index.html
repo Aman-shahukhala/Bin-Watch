@@ -14,19 +14,67 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
+    /* ── Light Mode (Default) ───────────────── */
     :root {
       --bg: #F7F5F0;
       --header: #1A1A2E;
+      --header-border: transparent;
       --card-bg: #FFFFFF;
+      --card-border: rgba(0,0,0,0.05);
+      --card-shadow: 0 4px 20px rgba(0,0,0,0.05);
       --accent-green: #4ADE80;
       --accent-amber: #FBBF24;
       --accent-red: #EF4444;
       --text-main: #1A1A2E;
       --text-muted: #888780;
       --nav-active: #4ADE80;
-      --nav-inactive: rgba(255,255,255,0.4);
+      --nav-inactive: rgba(255,255,255,0.45);
       --offline: #94A3B8;
+      --input-bg: #F1F5F9;
+      --input-border: #E2E8F0;
+      --toggle-bg: #F8FAFC;
+      --log-bg: #FFFFFF;
+      --log-border: #F8FAFC;
+      --table-border: #F1F5F9;
+      --bin-outer-bg: #F8FAFC;
+      --bin-outer-border: #E2E8F0;
+      --bin-lid: #E2E8F0;
+      --ctl-btn-bg: #F1F5F9;
+      --ctl-btn-color: #475569;
+      --modal-bg: #FFFFFF;
+      --map-border: #FFFFFF;
+      --section-border: #E2E8F0;
+      --chart-grid: rgba(0,0,0,0.05);
+    }
+
+    /* ── Dark "Stealth" Mode (via JS data-theme attribute) ── */
+    [data-theme="dark"] {
+      --bg: #080D1A;
+      --header: #0C1222;
+      --header-border: rgba(255,255,255,0.06);
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+      --card-shadow: 0 4px 30px rgba(0,0,0,0.4);
+      --text-main: #EDF2F7;
+      --text-muted: #6B7FA3;
+      --nav-inactive: rgba(255,255,255,0.35);
+      --input-bg: rgba(255,255,255,0.06);
+      --input-border: rgba(255,255,255,0.1);
+      --toggle-bg: rgba(255,255,255,0.05);
+      --log-bg: rgba(255,255,255,0.04);
+      --log-border: rgba(255,255,255,0.05);
+      --table-border: rgba(255,255,255,0.07);
+      --bin-outer-bg: rgba(255,255,255,0.04);
+      --bin-outer-border: rgba(255,255,255,0.12);
+      --bin-lid: rgba(255,255,255,0.15);
+      --ctl-btn-bg: rgba(255,255,255,0.08);
+      --ctl-btn-color: #A0AEC0;
+      --modal-bg: #111827;
+      --map-border: rgba(255,255,255,0.06);
+      --section-border: rgba(255,255,255,0.08);
+      --chart-grid: rgba(255,255,255,0.05);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,9 +96,12 @@
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .settings-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .settings-group label { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-    .settings-group input, .settings-group select { padding: 12px; border: 2px solid #F1F5F9; border-radius: 12px; font-family: inherit; transition: 0.2s; }
+    .settings-group input, .settings-group select { padding: 12px; border: 2px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: 12px; font-family: inherit; transition: 0.2s; }
     .settings-group input:focus { border-color: var(--accent-green); outline: none; }
-    .toggle-wrap { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #F8FAFC; border-radius: 12px; }
+    .toggle-wrap { 
+      display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; 
+      background: var(--toggle-bg); border-radius: 12px; height: 48px; min-height: 48px; border: 1px solid var(--card-border);
+    }
     
     /* Route Overlay */
     .route-control { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 15px; }
@@ -68,6 +119,7 @@
 
     header {
       background: var(--header);
+      border-bottom: 1px solid var(--header-border);
       padding: 0 32px;
       height: 64px;
       display: flex;
@@ -76,7 +128,10 @@
       position: sticky;
       top: 0;
       z-index: 1000;
+      transition: background 0.3s, border-color 0.3s;
     }
+
+    body { transition: background 0.3s, color 0.3s; }
 
     .logo {
       font-family: 'Nunito', sans-serif;
@@ -116,9 +171,14 @@
       cursor: pointer;
       display: flex;
       align-items: center;
+      justify-content: center;
       position: relative;
       transition: color 0.2s;
+      outline: none;
+      padding: 0 4px;
+      margin-top: 2px;
     }
+    .nav-btn i { display: flex; align-items: center; justify-content: center; }
 
     .nav-btn:hover { color: #fff; }
     .nav-btn.active { color: var(--nav-active); }
@@ -187,8 +247,9 @@
       background: var(--card-bg);
       padding: 24px;
       border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      border: 1px solid rgba(0,0,0,0.04);
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--card-border);
+      transition: background 0.3s, border-color 0.3s;
     }
 
     .stat-val { font-family: 'Nunito', sans-serif; font-size: 34px; font-weight: 800; margin-bottom: 4px; }
@@ -205,11 +266,14 @@
       background: var(--card-bg);
       border-radius: 24px;
       padding: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      border: 1px solid rgba(0,0,0,0.04);
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
       gap: 20px;
+      transition: background 0.3s;
     }
 
     .bin-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -219,8 +283,8 @@
 
     .bin-controls { display: flex; gap: 8px; }
     .ctl-btn { 
-      background: #F1F5F9; border: none; padding: 6px 10px; border-radius: 8px; 
-      font-size: 11px; font-weight: 600; color: #475569; cursor: pointer; transition: 0.2s;
+      background: var(--ctl-btn-bg); border: none; padding: 6px 10px; border-radius: 8px; 
+      font-size: 11px; font-weight: 600; color: var(--ctl-btn-color); cursor: pointer; transition: 0.2s;
     }
     .ctl-btn:hover { background: #E2E8F0; color: #1E293B; }
     .ctl-btn.del:hover { background: #fee2e2; color: #991b1b; }
@@ -230,20 +294,20 @@
     .bin-visual { position: relative; width: 70px; height: 90px; margin: 0 auto; }
     .bin-outer {
       position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
-      border: 3px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px;
-      overflow: hidden; background: #F8FAFC;
+      border: 3px solid var(--bin-outer-border); border-top: none; border-radius: 0 0 12px 12px;
+      overflow: hidden; background: var(--bin-outer-bg);
     }
     .bin-fill { position: absolute; bottom: 0; left: 0; right: 0; transition: height 1s ease, background 0.5s; }
     .bin-lid {
       position: absolute; top: 0; left: -5px; width: 80px; height: 8px;
-      background: #E2E8F0; border-radius: 4px; z-index: 10;
+      background: var(--bin-lid); border-radius: 4px; z-index: 10;
     }
 
     .bin-data { display: flex; flex-direction: column; gap: 2px; }
     .bin-pct { font-family: 'Nunito', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
     .bin-sub { font-size: 13px; color: var(--text-muted); }
 
-    .bin-chart-wrap { height: 120px; margin-top: 10px; border-top: 1px solid #F1F5F9; padding-top: 10px; }
+    .bin-chart-wrap { height: 120px; margin-top: 10px; border-top: 1px solid var(--table-border); padding-top: 10px; }
 
     .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
     .badge.ok     { background: #DCFCE7; color: #166534; }
@@ -251,23 +315,41 @@
     .badge.danger { background: #FEE2E2; color: #991B1B; }
 
     /* Map View */
-    #map { height: 600px; width: 100%; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 4px solid #fff; }
+    #map { height: 600px; width: 100%; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 4px solid var(--map-border); transition: border-color 0.3s; }
+    [data-theme="dark"] #map { filter: brightness(0.85) hue-rotate(10deg) saturate(0.9); }
+    
+    .map-container { display: grid; grid-template-columns: 1fr 340px; gap: 20px; height: 600px; }
+    .map-sidebar { 
+      background: var(--card-bg); border-radius: 24px; display: flex; flex-direction: column; height: 100%; overflow: hidden;
+      border: 1px solid var(--card-border); backdrop-filter: blur(10px);
+    }
+    .map-sidebar-search { padding: 16px; border-bottom: 1px solid var(--table-border); display: flex; flex-direction: column; gap: 10px; }
+    .map-sidebar-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .map-item-card { 
+      padding: 12px; background: var(--toggle-bg); border-radius: 12px; cursor: pointer; transition: 0.2s;
+      border: 1px solid transparent;
+    }
+    .map-item-card:hover { border-color: var(--accent-green); background: var(--card-bg); }
+    .nav-status-box { padding: 16px; background: var(--header); color: #fff; border-radius: 0 0 24px 24px; }
 
     /* Modal Style */
     .modal-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); 
       display: none; align-items:center; justify-content:center; z-index: 2000;
     }
-    .modal { background: #fff; padding: 32px; border-radius: 24px; width: 340px; display: flex; flex-direction: column; gap: 20px; }
+    .modal { background: var(--modal-bg); color: var(--text-main); padding: 32px; border-radius: 24px; width: 340px; display: flex; flex-direction: column; gap: 20px; border: 1px solid var(--card-border); }
     .modal h3 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; }
-    .modal input { 
-      padding: 12px 16px; border: 2px solid #F1F5F9; border-radius: 12px; font-family: inherit; font-size: 14px; outline: none; transition: 0.2s;
+    .modal input, .modal select { 
+      padding: 12px 16px; border: 2px solid var(--input-border); border-radius: 12px; 
+      font-family: inherit; font-size: 14px; outline: none; transition: 0.2s;
+      background: var(--input-bg); color: var(--text-main); width: 100%;
     }
-    .modal input:focus { border-color: var(--accent-green); }
+    .modal select option { background: var(--modal-bg); color: var(--text-main); }
+    .modal input:focus, .modal select:focus { border-color: var(--accent-green); }
     .modal-actions { display: flex; gap: 10px; }
     .modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
     .modal-btn.save { background: var(--accent-green); color: #064E3B; }
-    .modal-btn.cancel { background: #F1F5F9; color: #475569; }
+    .modal-btn.cancel { background: var(--ctl-btn-bg); color: var(--ctl-btn-color); }
 
     footer {
       background: var(--header); padding: 16px 32px;
@@ -284,11 +366,11 @@
     .log-section { margin-top: 40px; border-top: 2px solid #E2E8F0; padding-top: 32px; }
     .log-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
     .log-container { 
-      background: #fff; border-radius: 20px; padding: 20px; max-height: 300px; overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.04);
-      display: flex; flex-direction: column; gap: 10px;
+      background: var(--log-bg); border-radius: 20px; padding: 20px; max-height: 300px; overflow-y: auto;
+      box-shadow: var(--card-shadow); border: 1px solid var(--card-border);
+      display: flex; flex-direction: column; gap: 10px; transition: background 0.3s;
     }
-    .log-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #F8FAFC; animation: slideIn 0.3s ease-out; }
+    .log-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--log-border); animation: slideIn 0.3s ease-out; }
     .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .log-msg { font-size: 13px; font-weight: 500; flex: 1; }
     .log-time { font-size: 11px; color: var(--text-muted); font-weight: 600; }
@@ -296,12 +378,12 @@
 
     /* Detail View Specifics */
     .detail-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
-    .detail-card { background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.04); }
+    .detail-card { background: var(--card-bg); border-radius: 24px; padding: 24px; box-shadow: var(--card-shadow); border: 1px solid var(--card-border); backdrop-filter: blur(10px); transition: background 0.3s; }
     .large-chart-wrap { height: 400px; margin-top: 20px; }
     .history-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    .history-table th { text-align: left; padding: 12px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid #F1F5F9; }
-    .history-table td { padding: 12px; font-size: 14px; border-bottom: 1px solid #F8FAFC; }
-    .history-scroll-wrap { max-height: 400px; overflow-y: auto; margin-top: 16px; border-bottom: 1px solid #F1F5F9; }
+    .history-table th { text-align: left; padding: 16px 12px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--table-border); letter-spacing: 0.05em; }
+    .history-table td { padding: 16px 12px; font-size: 14px; border-bottom: 1px solid var(--log-border); vertical-align: middle; }
+    .history-scroll-wrap { max-height: 400px; overflow-y: auto; margin-top: 16px; border-bottom: 1px solid var(--table-border); }
     .back-btn { background: #1A1A2E; color: #fff; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; transition: 0.2s; }
     .back-btn:hover { background: #2A1A4E; }
 
@@ -352,10 +434,24 @@
     BinWatch Pro
   </div>
   <nav>
-    <button class="nav-btn active" onclick="switchView('status')">Live Status</button>
-    <button class="nav-btn" onclick="switchView('map')">Geographic Map</button>
-    <button class="nav-btn" onclick="switchView('settings')">Settings</button>
-    <button class="nav-btn" style="color: var(--accent-red);" onclick="logout()">End Session</button>
+    <button class="nav-btn active" onclick="switchView('status')">
+      <i data-lucide="activity" style="width:16px; margin-right:6px;"></i> Live Status
+    </button>
+    <button class="nav-btn" onclick="switchView('analytics')" id="nav-analytics">
+      <i data-lucide="bar-chart-3" style="width:16px; margin-right:6px;"></i> Analytics
+    </button>
+    <button class="nav-btn" onclick="switchView('map')">
+      <i data-lucide="map" style="width:16px; margin-right:6px;"></i> Geographic Map
+    </button>
+    <button class="nav-btn" onclick="switchView('team')" id="nav-team">
+      <i data-lucide="users" style="width:16px; margin-right:6px;"></i> Team
+    </button>
+    <button class="nav-btn" onclick="switchView('settings')" id="nav-settings">
+      <i data-lucide="settings" style="width:16px; margin-right:6px;"></i> Settings
+    </button>
+    <button class="nav-btn" style="color: var(--accent-red);" onclick="logout()">
+      <i data-lucide="log-out" style="width:16px; margin-right:6px;"></i> End Session
+    </button>
   </nav>
 </header>
 
@@ -466,15 +562,111 @@
 
   <!-- GEOGRAPHIC MAP VIEW -->
   <div id="view-map" class="view">
-    <div class="route-control" style="position: absolute; top: 20px; right: 20px; z-index: 1000; width: 280px; border: 1px solid #E2E8F0;">
-      <h3 style="font-size: 14px; margin-bottom: 10px; font-family: 'Nunito', sans-serif;">Logistics Engine</h3>
-      <button class="test-btn" style="width: 100%; font-size: 12px;" onclick="generateRoute()">Generate Collection Route</button>
-      <div id="route-info" style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">Starting from Depot...</div>
+    <div class="map-container">
+      <div id="map"></div>
+      
+      <div class="map-sidebar">
+        <div class="map-sidebar-search">
+          <h3 style="font-size: 14px; margin-bottom:12px; font-family:'Nunito';">Fleet Hub</h3>
+          
+          <div style="position:relative;">
+            <input type="text" id="map-search" placeholder="Search bins..." oninput="filterMapSidebar()" style="width:100%; padding:10px 10px 10px 34px; border-radius:10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">
+            <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:14px; color:var(--text-muted);"></i>
+          </div>
+          <div id="admin-driver-filter" style="display:none; margin-top:12px;">
+            <select id="map-driver-select" onchange="filterMapByDriver()" style="width:100%; padding:8px 12px; border-radius:10px; font-size:12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">
+               <option value="all">Display All Drivers</option>
+            </select>
+          </div>
+          <button class="test-btn" style="width:100%; margin-top:12px; font-size:13px; height:44px; border-radius:12px;" onclick="generateRoute()">
+            <i data-lucide="route" style="width:16px; margin-right:8px; vertical-align:middle;"></i> Generate Optimized Route
+          </button>
+        </div>
+
+        <div class="map-sidebar-list" id="map-sidebar-list">
+          <!-- Bins dynamically here -->
+        </div>
+
+        <div class="nav-status-box" id="nav-status-box" style="display:none; margin-top:auto;">
+          <div style="font-size:10px; font-weight:700; opacity:0.6; text-transform:uppercase; margin-bottom:8px;">Current Route Status</div>
+          <div id="route-current" style="font-weight:700; font-size:14px;">Next: --</div>
+          <div id="route-next" style="font-size:12px; opacity:0.8; margin-top:2px;">Then: --</div>
+        </div>
+      </div>
     </div>
-    <div id="map"></div>
   </div>
 
-  <!-- SETTINGS VIEW -->
+  <!-- ANALYTICS VIEW -->
+  <div id="view-analytics" class="view">
+    <div class="summary-row">
+      <div class="stat-card">
+        <div class="stat-label">Efficiency Index</div>
+        <div id="global-efficiency" class="stat-val">--%</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Avg. Fill at Pickup</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Waste Processed</div>
+        <div id="global-total-waste" class="stat-val">-- L</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Organization Fleet Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Deployments</div>
+        <div id="global-active-bins" class="stat-val">--</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Reporting Hardware</div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h3 style="font-family:'Nunito'; margin-bottom:20px;">Fleet Health & Growth Forecast</h3>
+      <div class="history-scroll-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Bin Nickname</th>
+              <th>Current Load</th>
+              <th>Trend</th>
+              <th>Predicted 100%</th>
+              <th>Assignment</th>
+            </tr>
+          </thead>
+          <tbody id="analytics-table-body">
+            <!-- Data dynamically here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM VIEW -->
+  <div id="view-team" class="view">
+    <div class="detail-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+        <div>
+          <h2 style="font-family:'Nunito'; font-weight:800;">Staff Management</h2>
+          <p style="color:var(--text-muted); font-size:14px;">Govern access and assign hardware to your collection fleet.</p>
+        </div>
+        <button class="test-btn" onclick="openAddStaffModal()" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px;">
+          <i data-lucide="user-plus" style="width:16px;"></i> Add Team Member
+        </button>
+      </div>
+
+      <div class="history-scroll-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Assigned Bins</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="team-table-body">
+            <!-- Staff here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   <div id="view-settings" class="view">
     <div class="stat-card" style="max-width: 800px; margin: 0 auto;">
       <h2 style="font-family: 'Nunito'; font-weight: 800; margin-bottom: 8px;">System Preferences</h2>
@@ -502,11 +694,11 @@
 
           <div class="right-col">
             <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px;">NOTIFICATIONS & DEPOT</h3>
-            <div class="settings-group">
+            <div class="settings-group" style="height: 72px;">
               <label>Receiver Email Address</label>
               <input type="email" id="set-email" required>
             </div>
-            <div class="settings-grid" style="gap: 10px;">
+            <div class="settings-grid" style="gap: 10px; height: 72px;">
               <div class="settings-group">
                 <label>Depot Lat</label>
                 <input type="number" id="set-depot-lat" step="0.000001" required>
@@ -521,13 +713,33 @@
                 <span>Email Notifications</span>
                 <input type="checkbox" id="set-email-on" style="width: 20px; height: 20px;">
               </div>
-              <button type="button" class="ctl-btn" style="flex: 1; padding: 12px;" onclick="playAlertSound()">Test Dashboard Alarm</button>
+              <button type="button" class="ctl-btn" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border);" onclick="playAlertSound()">Test Dashboard Alarm</button>
             </div>
           </div>
         </div>
 
-        <div style="margin-top: 32px; border-top: 1px solid #F1F5F9; padding-top: 24px; display: flex; justify-content: flex-end;">
-          <button type="submit" class="test-btn" style="padding: 12px 40px;">Save Settings</button>
+        <div style="margin-top: 32px; border-top: 1px solid var(--table-border); padding-top: 24px;">
+          <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px;">APPEARANCE</h3>
+          <div class="toggle-wrap" style="margin-bottom: 24px;">
+            <div>
+              <div style="font-weight: 700;">Theme Mode</div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Stealth Dark / Classic Light / Auto (System)</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="theme-btn-light" class="ctl-btn" onclick="setTheme('light')" title="Light Mode" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--card-border);">
+                <i data-lucide="sun" style="width:18px;height:18px;"></i>
+              </button>
+              <button type="button" id="theme-btn-dark" class="ctl-btn" onclick="setTheme('dark')" title="Dark Mode" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--card-border);">
+                <i data-lucide="moon" style="width:18px;height:18px;"></i>
+              </button>
+              <button type="button" id="theme-btn-auto" class="ctl-btn" onclick="setTheme('auto')" title="Auto Mode" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--card-border);">
+                <i data-lucide="laptop" style="width:18px;height:18px;"></i>
+              </button>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button type="submit" class="test-btn" style="padding: 12px 40px;">Save Settings</button>
+          </div>
         </div>
       </form>
     </div>
@@ -561,7 +773,112 @@
   </div>
 </div>
 
+<!-- Add Staff Modal -->
+<div class="modal-overlay" id="staff-modal">
+  <div class="modal" style="width: 480px;">
+    <h3>Add Team Member</h3>
+    <div class="settings-group">
+      <label>Username</label>
+      <input type="text" id="staff-username" placeholder="e.g. driver_john">
+    </div>
+    <div class="settings-group">
+      <label>Initial Password</label>
+      <input type="password" id="staff-password" placeholder="••••••••">
+    </div>
+    <div class="settings-group">
+      <label>Access Role</label>
+      <select id="staff-role" onchange="toggleBinSelector()">
+        <option value="driver">Driver (Logistics Only)</option>
+        <option value="analytics">Analytics (Read Only)</option>
+        <option value="admin">Administrator (Full Access)</option>
+      </select>
+    </div>
+    <div class="settings-group" id="bin-selector-group" style="margin-top: 10px;">
+      <label style="margin-bottom: 8px; display: block;">Delegated Hardware (Assign Bins)</label>
+      <div id="staff-bin-list" style="max-height: 180px; overflow-y: auto; background: var(--toggle-bg); border-radius: 12px; padding: 12px; border: 1px solid var(--card-border);">
+        <!-- Bin checkboxes here -->
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeStaffModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveStaff()">Create Account</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ── Theme System ────────────────────────────────
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.setAttribute('data-theme', 'dark');
+    } else if (theme === 'light') {
+      root.removeAttribute('data-theme');
+    } else {
+      // Auto: follow system
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) root.setAttribute('data-theme', 'dark');
+      else root.removeAttribute('data-theme');
+    }
+    // Highlight active button
+    ['light','dark','auto'].forEach(t => {
+      const btn = document.getElementById(`theme-btn-${t}`);
+      if (btn) btn.style.background = t === theme ? 'var(--accent-green)' : '';
+      if (btn) btn.style.border = t === theme ? '1px solid var(--accent-green)' : '';
+    });
+    // Create/Refresh Icons
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function setTheme(theme) {
+    localStorage.setItem('binwatch-theme', theme);
+    applyTheme(theme);
+  }
+
+  // Apply saved theme immediately on page load
+    const savedTheme = localStorage.getItem('binwatch-theme') || 'auto';
+    applyTheme(savedTheme);
+
+    // Role-Based Auth Check
+    let currentUser = null;
+    async function checkRole() {
+      try {
+        const res = await fetch('/auth/me');
+        if (res.ok) {
+          currentUser = await res.json();
+          updateUIVisibility();
+        }
+      } catch (err) { console.error("Role Check Error:", err); }
+    }
+
+    function updateUIVisibility() {
+      if (!currentUser) return;
+      const isAdmin = currentUser.role === 'admin';
+      
+      // Nav Tabs
+      document.getElementById('nav-team').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('nav-settings').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('admin-driver-filter').style.display = isAdmin ? 'block' : 'none';
+      
+      // Dashboard Buttons
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = isAdmin ? 'inline-flex' : 'none';
+      });
+
+      if (isAdmin) {
+         fetchTeam();
+         updateMapSidebar();
+      }
+    }
+
+    checkRole();
+
+  // Also listen for system-level changes (when in Auto mode)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if ((localStorage.getItem('binwatch-theme') || 'auto') === 'auto') applyTheme('auto');
+  });
+  // ── End Theme System ────────────────────────────
+
   async function logout() {
     try {
       await fetch('/auth/logout', { method: 'POST' });
@@ -574,6 +891,8 @@
   let currentView = 'status';
   let binsData = {};
   let lastPctMap = {};
+  let teamData = [];
+  let mapDriverFilter = 'all';
   let alerts = [];
   let charts = {};
   let map, markers = {}, markerGroup;
@@ -659,18 +978,19 @@
         restartPolling();
       }
     } catch (e) {
-      showToast("⚠ Error saving settings", 'var(--accent-red)');
+      showToast("Error saving settings", 'var(--accent-red)');
       console.error("Save Error:", e);
     }
   }
 
-  function showToast(msg, color) {
+  function showToast(text, color) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.style.borderColor = color;
-    toast.innerHTML = `<span style="color:${color}">${msg.split(' ')[0]}</span> ${msg.split(' ').slice(1).join(' ')}`;
+    toast.style.borderLeft = `4px solid ${color}`;
+    toast.innerHTML = `<i data-lucide="bell" style="width:16px;"></i> <span>${text}</span>`;
     container.appendChild(toast);
+    if (window.lucide) lucide.createIcons({ props: { "stroke": color } });
     setTimeout(() => toast.remove(), 3000);
   }
 
@@ -687,11 +1007,279 @@
     document.getElementById('view-' + view).classList.add('active');
     const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.toLowerCase().includes(view.replace('view-','')));
     if (btn) btn.classList.add('active');
-    
+
     currentView = view;
     if (view === 'map') {
-      setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => {
+        map.invalidateSize();
+        if (currentUser && currentUser.role === 'admin') fetchTeam();
+        updateMapSidebar();
+      }, 150);
     }
+    if (view === 'analytics') updateAnalytics();
+    if (view === 'team') fetchTeam();
+  }
+
+  // ── Team & Role Management ─────────────────────
+  async function fetchTeam() {
+    try {
+      const res = await fetch('/api/team');
+      teamData = await res.json();
+      
+      // Update Team Table
+      const tbody = document.getElementById('team-table-body');
+      tbody.innerHTML = teamData.map(u => `
+        <tr>
+          <td><div style="display:flex; align-items:center; gap:8px;"><i data-lucide="user" style="width:14px;"></i> ${u.username}</div></td>
+          <td><span class="badge ${u.role === 'admin' ? 'ok' : 'info'}" style="background:var(--toggle-bg); border:1px solid var(--card-border);">${u.role}</span></td>
+          <td>${u.role === 'admin' ? '<i>Global</i>' : (u.assignedBins?.length || 0) + ' Bins'}</td>
+          <td>
+            ${u.username === 'admin' ? '' : `
+              <button class="ctl-btn del" onclick="removeStaff('${u._id}')"><i data-lucide="trash-2" style="width:12px;"></i></button>
+            `}
+          </td>
+        </tr>
+      `).join('');
+
+      // Update Map Filter Dropdown
+      const select = document.getElementById('map-driver-select');
+      const drivers = teamData.filter(u => u.role === 'driver');
+      select.innerHTML = '<option value="all">Full Fleet Overview</option>' + 
+        drivers.map(d => `<option value="${d._id}">${d.username} (Assigned Only)</option>`).join('');
+
+      if (window.lucide) lucide.createIcons();
+    } catch (err) { console.error("Fetch Team Error:", err); }
+  }
+
+  function openAddStaffModal() {
+    document.getElementById('staff-modal').style.display = 'flex';
+    // Load Bin Checklist
+    const list = document.getElementById('staff-bin-list');
+    list.innerHTML = Object.values(binsData).map(b => `
+      <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--log-border);">
+        <input type="checkbox" name="assign-bin" value="${b.id}" style="width:18px; height:18px; margin:0; cursor:pointer;">
+        <span style="font-size:13px; font-weight:500;">${b.nickname || b.id}</span>
+      </div>
+    `).join('');
+    toggleBinSelector();
+  }
+
+  function closeStaffModal() { document.getElementById('staff-modal').style.display = 'none'; }
+
+  function toggleBinSelector() {
+    const role = document.getElementById('staff-role').value;
+    document.getElementById('bin-selector-group').style.display = role === 'driver' ? 'block' : 'none';
+  }
+
+  async function saveStaff() {
+    const username = document.getElementById('staff-username').value;
+    const password = document.getElementById('staff-password').value;
+    const role = document.getElementById('staff-role').value;
+    const assignedBins = Array.from(document.querySelectorAll('input[name="assign-bin"]:checked')).map(cb => cb.value);
+
+    try {
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role, assignedBins })
+      });
+      if (res.ok) {
+        showToast("Team member added", 'var(--accent-green)');
+        closeStaffModal();
+        fetchTeam();
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Failed to add user", 'var(--accent-red)');
+      }
+    } catch (err) { console.error("Save Staff Error:", err); }
+  }
+
+  async function removeStaff(id) {
+    if (!confirm('Remove this user?')) return;
+    try {
+      const res = await fetch(`/api/team/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast("User removed", 'var(--accent-red)');
+        fetchTeam();
+      }
+    } catch (err) { console.error("Remove Staff Error:", err); }
+  }
+
+  // ── Logistics & Map Navigation Hub ─────────────
+  function updateMapSidebar() {
+    if (!currentUser) return; // Guard against uninitialized role
+    const searchEl = document.getElementById('map-search');
+    const list = document.getElementById('map-sidebar-list');
+    if (!searchEl || !list) return;
+    const search = (searchEl.value || "").toLowerCase();
+    
+    // Filter by Search & Driver
+    let targetBinIds = null;
+    if (currentUser.role === 'driver') {
+      targetBinIds = currentUser.assignedBins || [];
+    } else if (mapDriverFilter !== 'all') {
+      const targetDriver = teamData.find(u => u._id === mapDriverFilter);
+      targetBinIds = targetDriver?.assignedBins || [];
+    }
+
+    const filtered = Object.values(binsData).filter(b => {
+      const matchesSearch = (b.nickname || '').toLowerCase().includes(search) || b.id.toLowerCase().includes(search);
+      const matchesDriver = targetBinIds ? targetBinIds.includes(b.id) : true;
+      return matchesSearch && matchesDriver;
+    });
+
+    list.innerHTML = filtered.map(b => {
+      const pct = Math.round(b.fill_percent);
+      const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
+      return `
+        <div class="map-item-card" onclick="zoomToBin('${b.id}')">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+             <div style="font-weight:700; font-size:13px;">${b.nickname || b.id}</div>
+             <div style="font-size:11px; color:${color}; font-weight:800;">${pct}%</div>
+          </div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filterMapSidebar() { updateMapSidebar(); }
+  
+  function filterMapByDriver() {
+    mapDriverFilter = document.getElementById('map-driver-select').value;
+    updateMapSidebar();
+    refreshMarkers();
+  }
+  
+  function refreshMarkers() {
+    if (!currentUser) return; // Guard against uninitialized role
+    // Determine which markers should be visible
+    let targetBinIds = null;
+    if (currentUser.role === 'driver') {
+      targetBinIds = currentUser.assignedBins || [];
+    } else if (mapDriverFilter !== 'all') {
+      const targetDriver = teamData.find(u => u._id === mapDriverFilter);
+      targetBinIds = targetDriver?.assignedBins || [];
+    }
+
+    Object.keys(markers).forEach(id => {
+       if (targetBinIds && !targetBinIds.includes(id)) {
+          map.removeLayer(markers[id]);
+       } else {
+          markerGroup.addLayer(markers[id]);
+       }
+    });
+  }
+
+  function zoomToBin(id) {
+    const bin = binsData[id];
+    if (bin && map) {
+      map.setView([bin.lat, bin.lng], 18, { animate: true });
+      if (markers[id]) markers[id].openPopup();
+    }
+  }
+
+  function refreshMarkers() {
+    if (!currentUser) return; // Guard against uninitialized role
+    // Determine which markers should be visible
+    let targetBinIds = null;
+    if (currentUser.role === 'driver') {
+      targetBinIds = currentUser.assignedBins || [];
+    } else if (mapDriverFilter !== 'all') {
+      const targetDriver = teamData.find(u => u._id === mapDriverFilter);
+      targetBinIds = targetDriver?.assignedBins || [];
+    }
+
+    Object.keys(markers).forEach(id => {
+      const isVisible = targetBinIds ? targetBinIds.includes(id) : true;
+      if (isVisible) markerGroup.addLayer(markers[id]);
+      else markerGroup.removeLayer(markers[id]);
+    });
+  }
+
+  // ── Analytics Intelligence ────────────────────
+  function updateAnalytics() {
+    const bins = Object.values(binsData);
+    if (bins.length === 0) return;
+
+    // 1. Efficiency Index (Detection of drops > 50%)
+    let collectionEvents = 0;
+    let totalFillAtCollection = 0;
+    
+    bins.forEach(b => {
+      const history = b.history || [];
+      for (let i = 1; i < history.length; i++) {
+        if (history[i-1].fill - history[i].fill > 50) {
+          collectionEvents++;
+          totalFillAtCollection += history[i-1].fill;
+        }
+      }
+    });
+
+    const efficiency = collectionEvents > 0 ? Math.round(totalFillAtCollection / collectionEvents) : 0;
+    document.getElementById('global-efficiency').textContent = efficiency > 0 ? `${efficiency}%` : "No data";
+    
+    // 2. Global Totals
+    document.getElementById('global-active-bins').textContent = bins.length;
+    document.getElementById('global-total-waste').textContent = (collectionEvents * 20).toLocaleString() + " L"; // assume 20L per bin emptied
+
+    // 3. Growth Predictor & Table
+    const tbody = document.getElementById('analytics-table-body');
+    tbody.innerHTML = bins.map(b => {
+      const prediction = calculateGrowthPredictor(b);
+      const isUrgent = prediction.hours < 12 && prediction.hours > 0;
+      return `
+        <tr>
+          <td><b>${b.nickname || b.id}</b></td>
+          <td>${Math.round(b.fill_percent)}%</td>
+          <td><i data-lucide="${prediction.trend === 'up' ? 'trending-up' : 'minus'}" style="width:14px; color:${prediction.trend === 'up' ? 'var(--accent-red)' : ''}"></i></td>
+          <td style="color:${isUrgent ? 'var(--accent-red)' : ''}; font-weight:${isUrgent ? '700' : 'normal'}">${prediction.label}</td>
+          <td>${getAssignedNames(b.id)}</td>
+        </tr>
+      `;
+    }).join('');
+    
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function calculateGrowthPredictor(bin) {
+    const h = bin.history || [];
+    if (h.length < 5) return { label: "Collecting Data...", trend: "none", hours: -1 };
+    
+    // Simple Linear Regression on last 10 points
+    const points = h.slice(-10);
+    const start = new Date(points[0].timestamp);
+    const timeline = points.map(p => (new Date(p.timestamp) - start) / 3600000); // hours
+    const values = points.map(p => p.fill);
+    
+    // Slope (rate of change per hour)
+    const n = points.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += timeline[i];
+      sumY += values[i];
+      sumXY += timeline[i] * values[i];
+      sumX2 += timeline[i] * timeline[i];
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    
+    if (slope <= 0.05) return { label: "Low Impact", trend: "none", hours: -1 };
+    
+    const currFill = Math.round(bin.fill_percent);
+    const hoursToFull = (100 - currFill) / slope;
+    
+    let label = "";
+    if (hoursToFull < 1) label = "IMMIMNENT (Full)";
+    else if (hoursToFull < 24) label = `${Math.round(hoursToFull)} Hours`;
+    else label = `${Math.round(hoursToFull / 24)} Days`;
+    
+    return { label, trend: "up", hours: hoursToFull };
+  }
+
+  function getAssignedNames(binId) {
+    const assigned = teamData.filter(u => u.assignedBins?.includes(binId));
+    if (assigned.length === 0) return "--";
+    return assigned.map(u => u.username).join(', ');
   }
 
   function initMap() {
@@ -699,8 +1287,37 @@
     map = L.map('map').setView([systemSettings.depotLat, systemSettings.depotLng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     
-    updateDepotPointer();
     markerGroup = L.markerClusterGroup().addTo(map);
+    const bins = Object.values(binsData);
+    bins.forEach(b => {
+      const pct = Math.round(b.fill_percent) || 0;
+      const s = getStatusStyle(pct, b.last_seen);
+      
+      const marker = L.marker([b.lat, b.lng], {
+        icon: L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div class="marker-pin ${s.badge}" style="background-color: ${s.color}; border:4px solid var(--card-bg); width:24px; height:24px; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.2);"></div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        })
+      });
+
+      marker.bindPopup(`
+        <div style="font-family:'DM Sans'; padding:4px;">
+          <h3 style="font-size:16px; margin-bottom:4px;">${b.nickname || b.id}</h3>
+          <div style="font-size:24px; font-weight:800; color:${s.color};">${pct}% Full</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
+          <button class="test-btn" style="width:100%; margin-top:10px; font-size:11px;" onclick="openDetail('${b.id}')">View Full Analytics</button>
+        </div>
+      `);
+      
+      markers[b.id] = marker;
+      markerGroup.addLayer(marker);
+    });
+
+    refreshMarkers();
+    updateMapSidebar();
+    updateDepotPointer();
   }
 
   function updateDepotPointer() {
@@ -823,14 +1440,22 @@
         updateMapMarker(id, bin);
       });
 
+      if (currentView === 'map') updateMapSidebar();
+
+      // Cleanup: Remove cards for bins no longer in the list
+      document.querySelectorAll('.bin-card').forEach(card => {
+        const id = card.id.replace('bin-', '');
+        if (!binIds.includes(id)) card.remove();
+      });
+
+      // Global Summary Refinement
       document.getElementById('sum-bins').textContent = binIds.length;
-      document.getElementById('sum-avg').textContent = Math.round(totalFill / activeCount || 0) + '%';
+      document.getElementById('sum-avg').textContent = activeCount > 0 ? Math.round(totalFill/activeCount) + '%' : '--%';
       document.getElementById('sum-alerts').textContent = alertsCount;
       document.getElementById('sum-alerts').style.color = alertsCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)';
-      document.getElementById('footer-status').textContent = `Tracking Network: ${activeCount}/${binIds.length} Nodes Healthy`;
 
     } catch (e) {
-      console.error("Fetch Error:", e);
+      console.error("Fetch Data Error:", e);
     }
   }
 
@@ -875,21 +1500,29 @@
       return;
     }
 
+    document.getElementById('nav-status-box').style.display = 'block';
+    
     const waypoints = [
       L.latLng(systemSettings.depotLat, systemSettings.depotLng),
       ...fullBins.map(b => L.latLng(b.lat, b.lng)),
       L.latLng(systemSettings.depotLat, systemSettings.depotLng) // Back to depot
     ];
 
+    // Tracker UI
+    if (fullBins.length > 0) {
+      document.getElementById('route-current').innerHTML = `<i data-lucide="navigation" style="width:14px; margin-right:6px;"></i> Next: ${fullBins[0].nickname || fullBins[0].id}`;
+      document.getElementById('route-next').textContent = fullBins.length > 1 ? `Then: ${fullBins[1].nickname || fullBins[1].id}` : "Final stop: Depot";
+    }
+
     routingControl = L.Routing.control({
       waypoints,
       routeWhileDragging: false,
       addWaypoints: false,
-      lineOptions: { styles: [{ color: '#1A1A2E', weight: 4, opacity: 0.7 }] },
+      lineOptions: { styles: [{ color: 'var(--accent-green)', weight: 6, opacity: 0.8 }] },
       createMarker: () => null // Use existing markers
     }).addTo(map);
 
-    document.getElementById('route-info').textContent = `Optimized route for ${fullBins.length} bins generated.`;
+    if (window.lucide) lucide.createIcons();
   }
 
   // Common UI Logic
@@ -910,7 +1543,7 @@
       body: JSON.stringify({ id: activeBinId, nickname, binHeight })
     });
     if (res.ok) {
-      showToast("✓ Settings Applied", 'var(--accent-green)');
+      showToast("Settings Applied", 'var(--accent-green)');
       addAlert(`System: Configured ${activeBinId}`, 'var(--accent-green)');
       fetchData();
     }
@@ -921,7 +1554,7 @@
     if (confirm(`Purge ${id}?`)) {
       const res = await fetch(`/bin/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        showToast("× Device Removed", 'var(--accent-red)');
+        showToast("Device Removed", 'var(--accent-red)');
         markerGroup.removeLayer(markers[id]);
         delete markers[id];
         document.getElementById(`bin-${id}`).remove();
@@ -1071,13 +1704,13 @@
   }
 
   async function sendTestAlert() {
-    showToast("🔔 Triggering test alert...", "var(--accent-amber)");
+    showToast("Triggering test alert...", "var(--accent-amber)");
     try {
       await fetch('/test-alert', { method: 'POST' });
       addAlert("System: Test alert email requested.", "var(--accent-green)");
-      showToast("✓ Alert action completed", "var(--accent-green)");
+      showToast("Alert action completed", "var(--accent-green)");
     } catch(e) {
-      showToast("⚠ Failed to trigger alert", "var(--accent-red)");
+      showToast("Failed to trigger alert", "var(--accent-red)");
     }
   }
 
@@ -1086,7 +1719,7 @@
     if(confirm('Are you sure you want to permanently clear the history timeline for this bin?')) {
       try {
         await fetch(`/reset-history/${activeBinId}`, { method: 'POST' });
-        showToast("× History purged", "var(--accent-red)");
+        showToast("History purged", "var(--accent-red)");
         addAlert(`System: History purged for ${activeBinId}`, "var(--accent-red)");
         switchView('status');
       } catch(e) {

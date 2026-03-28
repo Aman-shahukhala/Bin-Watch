@@ -3,7 +3,9 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  role: { type: String, enum: ['admin', 'driver', 'analytics'], default: 'admin' },
+  assignedBins: [{ type: String }] // Array of Bin IDs
 });
 
 userSchema.pre('save', async function() {

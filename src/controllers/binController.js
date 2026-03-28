@@ -81,7 +81,15 @@ exports.updateBin = async (req, res) => {
 
 exports.getBins = async (req, res) => {
   try {
-    const bins = await Bin.find();
+    const role = req.session.role;
+    const assigned = req.session.assignedBins || [];
+    
+    let query = {};
+    if (role === 'driver') {
+      query = { id: { $in: assigned } };
+    }
+
+    const bins = await Bin.find(query);
     const binObj = {};
     bins.forEach(b => { binObj[b.id] = b; });
     res.json(binObj);
@@ -91,6 +99,7 @@ exports.getBins = async (req, res) => {
 };
 
 exports.renameBin = async (req, res) => {
+  if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   const { id, nickname, binHeight } = req.body;
   try {
     const update = { nickname };
@@ -103,6 +112,7 @@ exports.renameBin = async (req, res) => {
 };
 
 exports.deleteBin = async (req, res) => {
+  if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   try {
     await Bin.deleteOne({ id: req.params.id });
     res.json({ success: true });
@@ -112,6 +122,7 @@ exports.deleteBin = async (req, res) => {
 };
 
 exports.resetHistory = async (req, res) => {
+  if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   try {
     await Bin.updateOne({ id: req.params.id }, { $set: { history: [] } });
     res.json({ success: true });
