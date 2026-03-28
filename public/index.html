@@ -1018,18 +1018,18 @@
         datasets: [{
           label: 'Fill Level %',
           data: history.map(h => h.fill),
-          borderColor: '#1A1A2E',
-          borderWidth: 3,
-          backgroundColor: 'rgba(26, 26, 46, 0.05)',
+          borderColor: '#4ADE80',
+          borderWidth: 2,
+          backgroundColor: 'rgba(74, 222, 128, 0.1)',
           fill: true,
           tension: 0.4,
-          pointRadius: 4,
-          pointBackgroundColor: '#4ADE80'
+          pointRadius: 0
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
         scales: {
           y: { min: 0, max: 100, grid: { color: '#F8FAFC' } },
           x: { grid: { display: false } }
