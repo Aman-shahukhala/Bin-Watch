@@ -1468,16 +1468,24 @@
       // Update Map Filter Dropdown — role list depends on deployment mode
       const select = document.getElementById('map-driver-select');
       const currentVal = mapDriverFilter; // Preserve selection
-      const isCampusMode = getActiveMapMode() === 'campus';
-      // Campus = show janitors & non-superuser admins; Municipality = show drivers
-      const staffList = isCampusMode
-        ? teamData.filter(u => u.role === 'janitor' || (u.role === 'admin' && u.username !== 'admin'))
-        : teamData.filter(u => u.role === 'driver');
-      const roleLabel = isCampusMode ? 'Janitor' : 'Driver';
+      const activeMode = getActiveMapMode();
+
+      let staffList = [];
+      if (activeMode === 'campus') {
+        staffList = teamData.filter(u => u.role === 'janitor' || (u.role === 'admin' && u.username !== 'admin'));
+      } else if (activeMode === 'municipality') {
+        staffList = teamData.filter(u => u.role === 'driver');
+      } else {
+        // 'both' / 'all' = list all operational staff
+        staffList = teamData.filter(u => ['janitor', 'driver'].includes(u.role) || (u.role === 'admin' && u.username !== 'admin'));
+      }
 
       select.innerHTML = `
         <option value="all">Full Fleet (Admin Overview)</option>
-        ${staffList.map(u => `<option value="${u._id}">${roleLabel}: ${u.username}</option>`).join('')}
+        ${staffList.map(u => {
+           let roleLbl = u.role.charAt(0).toUpperCase() + u.role.slice(1);
+           return `<option value="${u._id}">${roleLbl}: ${u.username}</option>`;
+        }).join('')}
       `;
       select.value = currentVal;
 
