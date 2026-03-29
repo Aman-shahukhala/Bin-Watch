@@ -10,7 +10,7 @@ const binSchema = new mongoose.Schema({
   alert_sent: { type: Boolean, default: false },
   lat: { type: Number, default: 27.712629 },
   lng: { type: Number, default: 85.329363 },
-  binHeight: { type: Number, default: 20 },
+
   binHeight: { type: Number, default: 20 },
   binType: { type: String, enum: ['street', 'indoor'], default: 'street' },
   floor: { type: String, enum: ['Ground', '1st'], default: 'Ground' },
@@ -23,8 +23,7 @@ const binSchema = new mongoose.Schema({
   }]
 });
 
-// Ensure fast lookup for ID and last seen reports
-binSchema.index({ id: 1 });
+// Ensure fast lookup for last seen reports
 binSchema.index({ last_seen: -1 });
 
 module.exports = mongoose.model("Bin", binSchema);

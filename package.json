@@ -1,8 +1,6 @@
 {
   "name": "dustbin-pro",
   "version": "1.0.0",
-  "description": "Professional IoT-enabled waste management platform for smart fleet tracking.",
-  "license": "MIT",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
