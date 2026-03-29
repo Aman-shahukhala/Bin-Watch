@@ -55,8 +55,14 @@ exports.me = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
-  req.session.destroy();
-  res.json({ success: true });
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("[AUTH] Logout session destruction failure:", err);
+      return res.status(500).json({ error: "Logout failed" });
+    }
+    res.clearCookie('__binwatch_sid'); // explicitly clear the session cookie
+    res.json({ success: true });
+  });
 };
 
 exports.seedAdmin = async () => {

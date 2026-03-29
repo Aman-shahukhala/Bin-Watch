@@ -935,15 +935,20 @@
 
   async function logout() {
     try {
+      if (typeof pollingTimer !== 'undefined') clearInterval(pollingTimer);
+      if (typeof shiftWatchId !== 'undefined' && shiftWatchId !== null) navigator.geolocation.clearWatch(shiftWatchId);
+      
       await fetch('/auth/logout', { method: 'POST' });
       window.location.href = '/login.html';
     } catch (err) {
       console.error('Logout error:', err);
+      window.location.href = '/login.html'; // force redirect anyway
     }
   }
 
   let currentView = 'status';
   let binsData = {};
+  let lastBinsDataHash = ""; // For diffing
   let lastPctMap = {};
   let teamData = [];
   let mapDriverFilter = 'all';
@@ -1388,7 +1393,8 @@
     let totalFillAtCollection = 0;
     
     bins.forEach(b => {
-      const history = b.history || [];
+      // OPTIMIZATION: Only scan last 20 points for live efficiency calculation
+      const history = (b.history || []).slice(-20);
       for (let i = 1; i < history.length; i++) {
         if (history[i-1].fill - history[i].fill > 50) {
           collectionEvents++;
@@ -1398,29 +1404,36 @@
     });
 
     const efficiency = collectionEvents > 0 ? Math.round(totalFillAtCollection / collectionEvents) : 0;
-    document.getElementById('global-efficiency').textContent = efficiency > 0 ? `${efficiency}%` : "No data";
+    const elEff = document.getElementById('global-efficiency');
+    const effText = efficiency > 0 ? `${efficiency}%` : "No data";
+    if (elEff.textContent !== effText) elEff.textContent = effText;
     
     // 2. Global Totals
-    document.getElementById('global-active-bins').textContent = bins.length;
-    document.getElementById('global-total-waste').textContent = (collectionEvents * 20).toLocaleString() + " L"; // assume 20L per bin emptied
+    const elActive = document.getElementById('global-active-bins');
+    if (elActive.textContent !== String(bins.length)) elActive.textContent = bins.length;
+    
+    const elWaste = document.getElementById('global-total-waste');
+    const wasteText = (collectionEvents * 20).toLocaleString() + " L";
+    if (elWaste.textContent !== wasteText) elWaste.textContent = wasteText;
 
     // 3. Growth Predictor & Table
     const tbody = document.getElementById('analytics-table-body');
-    tbody.innerHTML = bins.map(b => {
-      const prediction = calculateGrowthPredictor(b);
-      const isUrgent = prediction.hours < 12 && prediction.hours > 0;
-      return `
-        <tr>
-          <td><b>${b.nickname || b.id}</b></td>
-          <td>${Math.round(b.fill_percent)}%</td>
-          <td><i data-lucide="${prediction.trend === 'up' ? 'trending-up' : 'minus'}" style="width:14px; color:${prediction.trend === 'up' ? 'var(--accent-red)' : ''}"></i></td>
-          <td style="color:${isUrgent ? 'var(--accent-red)' : ''}; font-weight:${isUrgent ? '700' : 'normal'}">${prediction.label}</td>
-          <td>${getAssignedNames(b.id)}</td>
-        </tr>
-      `;
-    }).join('');
-    
-    if (window.lucide) lucide.createIcons();
+    // Only rebuild table if view is active to save CPU
+    if (currentView === 'analytics') {
+      tbody.innerHTML = bins.map(b => {
+        const prediction = calculateGrowthPredictor(b);
+        const isUrgent = prediction.hours < 12 && prediction.hours > 0;
+        return `
+          <tr>
+            <td><b>${b.nickname || b.id}</b></td>
+            <td>${Math.round(b.fill_percent)}%</td>
+            <td><i data-lucide="${prediction.trend === 'up' ? 'trending-up' : 'minus'}" style="width:14px; color:${prediction.trend === 'up' ? 'var(--accent-red)' : ''}"></i></td>
+            <td style="color:${isUrgent ? 'var(--accent-red)' : ''}; font-weight:${isUrgent ? '700' : 'normal'}">${prediction.label}</td>
+            <td>${getAssignedNames(b.id)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
   }
 
   function calculateGrowthPredictor(bin) {
@@ -1585,6 +1598,12 @@
         return;
       }
       const bins = await res.json();
+      
+      // OPTIMIZATION: Quick Hash comparison to skip non-visual updates
+      const currentHash = JSON.stringify(Object.values(bins).map(b => ({id: b.id, fill: b.fill_percent, seen: b.last_seen})));
+      const dataChanged = currentHash !== lastBinsDataHash;
+      lastBinsDataHash = currentHash;
+      
       binsData = bins;
       const binIds = Object.keys(bins);
 
@@ -1616,35 +1635,53 @@
         const existing = document.getElementById(`bin-${id}`);
         if (!existing) {
           container.insertAdjacentHTML('beforeend', renderBin(id, bin));
-        } else {
+          updateChart(id, bin.history);
+          updateMapMarker(id, bin);
+        } else if (dataChanged) { // Only update UI if something actually changed
           existing.className = `bin-card ${s.label === 'Offline' ? 'offline' : ''}`;
-          existing.querySelector('.bin-fill').style.height = pct + '%';
-          existing.querySelector('.bin-fill').style.background = s.fill;
-          existing.querySelector('.bin-pct').textContent = pct + '%';
-          existing.querySelector('.bin-pct').style.color = s.text;
+          
+          const fillBar = existing.querySelector('.bin-fill');
+          if (fillBar.style.height !== pct + '%') {
+             fillBar.style.height = pct + '%';
+             fillBar.style.background = s.fill;
+          }
+          
+          const pctText = existing.querySelector('.bin-pct');
+          if (pctText.textContent !== pct + '%') {
+             pctText.textContent = pct + '%';
+             pctText.style.color = s.text;
+          }
+          
           existing.querySelector('.bin-sub').textContent = `${bin.distance} cm • ${s.label}`;
           existing.querySelector('.badge').className = `badge ${s.badge}`;
           existing.querySelector('.badge').textContent = s.label === 'Offline' ? 'Unreachable' : 'Live';
           existing.querySelector('.bin-name').textContent = bin.nickname || id;
-        }
 
-        updateChart(id, bin.history);
-        updateMapMarker(id, bin);
+          updateChart(id, bin.history);
+          updateMapMarker(id, bin);
+        }
       });
 
-      if (currentView === 'map') updateMapSidebar();
+      if (dataChanged) {
+        if (currentView === 'map') updateMapSidebar();
+        updateAnalytics();
+        updateFleetMarkers();
+      }
 
-      // Cleanup: Remove cards for bins no longer in the list
+      // Cleanup
       document.querySelectorAll('.bin-card').forEach(card => {
         const id = card.id.replace('bin-', '');
         if (!binIds.includes(id)) card.remove();
       });
 
-      // Global Summary Refinement
+      // Global Summary
       document.getElementById('sum-bins').textContent = binIds.length;
       document.getElementById('sum-avg').textContent = activeCount > 0 ? Math.round(totalFill/activeCount) + '%' : '--%';
       document.getElementById('sum-alerts').textContent = alertsCount;
       document.getElementById('sum-alerts').style.color = alertsCount > 0 ? 'var(--accent-red)' : 'var(--accent-green)';
+
+      // Consolidate Lucide Batching
+      if (dataChanged && window.lucide) lucide.createIcons();
 
     } catch (e) {
       console.error("Fetch Data Error:", e);
@@ -1803,10 +1840,20 @@
     if (!history || history.length === 0) return;
     const ctx = document.getElementById(`chart-${id}`);
     if (!ctx) return;
-    if (charts[id]) {
-      charts[id].data.labels = history.map(h => h.time);
-      charts[id].data.datasets[0].data = history.map(h => h.fill);
-      charts[id].update('none');
+    
+    // OPTIMIZATION: Only update Chart.js if history length or last value changed
+    const chart = charts[id];
+    const lastVal = history[history.length - 1].fill;
+    
+    if (chart) {
+      const isStale = chart.lastLen !== history.length || chart.lastVal !== lastVal;
+      if (!isStale) return; // Skip expensive repaint
+      
+      chart.data.labels = history.map(h => h.time);
+      chart.data.datasets[0].data = history.map(h => h.fill);
+      chart.lastLen = history.length;
+      chart.lastVal = lastVal;
+      chart.update('none');
     } else {
       charts[id] = new Chart(ctx, {
         type: 'line',
@@ -1943,10 +1990,10 @@
 
   window.onload = () => {
     loadSettings();
-    // Register PWA Service Worker
+    // Register PWA Service Worker (Network-Only Mode)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('BinWatch PWA Ready'))
+        .then(() => console.log('BinWatch PWA Ready (Live-Stream Mode)'))
         .catch(err => console.error('PWA Fail:', err));
     }
     // Allow audio on first click
