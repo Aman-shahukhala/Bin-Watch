@@ -1,41 +1,27 @@
-const CACHE_NAME = 'binwatch-v3';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/logo.png',
-  '/icon-512.png',
-  '/favicon.png',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css',
-  'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css',
-  'https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css'
-  // NOTE: JS scripts are intentionally NOT cached to preserve load order
-];
+// "Zero-Cache" Service Worker for BinWatch Pro 
+// This satisfies PWA install criteria without storing any local files.
+const CACHE_NAME = 'binwatch-live-v1';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Purge all existing caches to ensure a fresh state
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((cacheName) => cacheName !== CACHE_NAME)
-          .map((cacheName) => caches.delete(cacheName))
-      );
-    })
+    caches.keys().then((names) => {
+      return Promise.all(names.map((name) => caches.delete(name)));
+    }).then(() => self.clients.claim())
   );
 });
 
+// "Live-Stream" Strategy: 
+// We include a fetch listener to satisfy PWA criteria, but we do NOT 
+// intercept the requests. This allows the browser to handle them 
+// directly via the standard network stack, avoiding CSP "connect-src" 
+// issues and providing the best "Zero-Cache" performance.
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).catch(err => {
-         console.warn('[SW] Fetch failed; returning offline error.', err);
-         // Optionally return a specific offline page here
-      });
-    })
-  );
+  // Empty listener is sufficient for PWA "Installable" status 
+  // in modern browsers. It defaults to normal browser fetch.
+  return;
 });
