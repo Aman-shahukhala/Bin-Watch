@@ -1750,7 +1750,7 @@
       try {
         const pct = Math.round(b.fill_percent) || 0;
         const pred = calculateGrowthPredictor(b) || { trend: 'none', hours: 0 };
-        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < (getActiveMapMode() === 'campus' ? 1 : 12);
+        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < (b.binType === 'indoor' ? 1 : 12);
         const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
         
         return `
@@ -1917,7 +1917,7 @@
     if (tbody && currentView === 'analytics') {
       tbody.innerHTML = bins.map(b => {
         const prediction = calculateGrowthPredictor(b);
-        const urgencyThreshold = getActiveMapMode() === 'campus' ? 1 : 12;
+        const urgencyThreshold = b.binType === 'indoor' ? 1 : 12;
         const isUrgent = prediction.hours < urgencyThreshold && prediction.hours > 0;
         const pct = Math.round(b.fill_percent);
         const s = getStatusStyle(pct, b.last_seen);
@@ -2117,7 +2117,7 @@
       const pct = Math.round(b.fill_percent) || 0;
       const s = getStatusStyle(pct, b.last_seen);
       const pred = calculateGrowthPredictor(b);
-      const urgencyThreshold = getActiveMapMode() === 'campus' ? 1 : 12;
+      const urgencyThreshold = b.binType === 'indoor' ? 1 : 12;
       const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < urgencyThreshold;
 
       const pos = indoorMapMode ? [b.y || 500, b.x || 500] : [b.lat || systemSettings.depotLat, b.lng || systemSettings.depotLng];
@@ -2359,7 +2359,7 @@
     const pct = Math.round(bin.fill_percent);
     const s = getStatusStyle(pct, bin.last_seen);
     const pred = calculateGrowthPredictor(bin);
-    const urgencyThreshold = getActiveMapMode() === 'campus' ? 1 : 12;
+    const urgencyThreshold = bin.binType === 'indoor' ? 1 : 12;
     const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < urgencyThreshold;
 
     const size = indoorMapMode ? 36 : 24;
