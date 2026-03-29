@@ -1468,7 +1468,7 @@
       // Update Map Filter Dropdown — role list depends on deployment mode
       const select = document.getElementById('map-driver-select');
       const currentVal = mapDriverFilter; // Preserve selection
-      const isCampusMode = systemSettings.systemMode === 'campus';
+      const isCampusMode = getActiveMapMode() === 'campus';
       // Campus = show janitors & non-superuser admins; Municipality = show drivers
       const staffList = isCampusMode
         ? teamData.filter(u => u.role === 'janitor' || (u.role === 'admin' && u.username !== 'admin'))
@@ -1634,20 +1634,29 @@
 
   let hubFilter = 'all';
 
+  function getActiveMapMode() {
+    if (!systemSettings || !systemSettings.systemMode) return 'both';
+    if (systemSettings.systemMode !== 'both') return systemSettings.systemMode;
+    // Local override logic for Enterprise ('both') mode:
+    if (hubFilter === 'street') return 'municipality';
+    if (hubFilter === 'campus') return 'campus';
+    return 'both'; 
+  }
+
   function setHubFilter(hub, silent = false) {
     hubFilter = hub;
     document.querySelectorAll('.hub-filter-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`hub-${hub.toLowerCase()}`).classList.add('active');
     
-    // Sync with Global Mode
-    if (!silent && (hub === 'street' || hub === 'campus')) {
-      systemSettings.systemMode = hub === 'street' ? 'municipality' : 'campus';
-      saveSettings(); // Persist selection
-      fetchTeam(); // Update fleet dropdown immediately 
-      toggleMapDeploymentMode(systemSettings.systemMode);
-    } else if (!silent && hub === 'all' && systemSettings.systemMode === 'campus') {
-      // In ALL view with campus artifacts, ensure we don't switch away but show all markers
-      toggleMapDeploymentMode('campus');
+    // Sync with Local View Map Mode
+    if (!silent) {
+       const activeMode = getActiveMapMode();
+       if (activeMode === 'both' && hub === 'all') {
+         toggleMapDeploymentMode('municipality'); // default back to gps map
+       } else {
+         toggleMapDeploymentMode(activeMode === 'campus' ? 'campus' : 'municipality');
+       }
+       fetchTeam(); // Update fleet dropdown immediately 
     }
 
     updateMapSidebar();
@@ -1684,16 +1693,10 @@
     const isAdminFleet = (currentUser.role === 'admin' && mapDriverFilter === 'all') || isGlobal;
     
     const filtered = Object.values(binsData).filter(b => {
-      // 1. Global Deployment Lock (with smart legacy defaults)
+      // 1. Local View Deployment Mode
       const bType = b.binType || (b.floor ? 'indoor' : 'street');
-      if (systemSettings.systemMode === 'municipality' && bType !== 'street') return false;
-      if (systemSettings.systemMode === 'campus' && bType !== 'indoor') return false;
-
-      // 2. Hub Filter (only relevant if mode is 'both' and not 'all')
-      if (systemSettings.systemMode === 'both' && hubFilter !== 'all') {
-        if (hubFilter === 'street' && bType !== 'street') return false;
-        if (hubFilter === 'campus' && bType !== 'indoor') return false;
-      }
+      if (getActiveMapMode() === 'municipality' && bType !== 'street') return false;
+      if (getActiveMapMode() === 'campus' && bType !== 'indoor') return false;
 
       // 3. Search Filter
       const matchesSearch = (b.nickname || '').toLowerCase().includes(search) || b.id.toLowerCase().includes(search);
@@ -1710,8 +1713,8 @@
       
       // Global Deployment Lock for Logs (with legacy support)
       const bType = b.binType || (b.floor ? 'indoor' : 'street');
-      if (systemSettings.systemMode === 'municipality' && bType !== 'street') return false;
-      if (systemSettings.systemMode === 'campus' && bType !== 'indoor') return false;
+      if (getActiveMapMode() === 'municipality' && bType !== 'street') return false;
+      if (getActiveMapMode() === 'campus' && bType !== 'indoor') return false;
       
       return true;
     });
@@ -1739,7 +1742,7 @@
       try {
         const pct = Math.round(b.fill_percent) || 0;
         const pred = calculateGrowthPredictor(b) || { trend: 'none', hours: 0 };
-        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < (systemSettings.systemMode === 'campus' ? 1 : 12);
+        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < (getActiveMapMode() === 'campus' ? 1 : 12);
         const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
         
         return `
@@ -1786,16 +1789,10 @@
       const bin = binsData[id];
       if (!bin) return;
 
-      // 1. Global Deployment Lock
+      // 1. Local View Deployment Lock
       let globalVisible = true;
-      if (systemSettings.systemMode === 'municipality' && bin.binType !== 'street') globalVisible = false;
-      if (systemSettings.systemMode === 'campus' && bin.binType !== 'indoor') globalVisible = false;
-
-      // 2. Hub Filter Visibility (only if set to both)
-      if (systemSettings.systemMode === 'both') {
-         if (hubFilter === 'street' && bin.binType !== 'street') globalVisible = false;
-         if (hubFilter === 'campus' && bin.binType !== 'indoor') globalVisible = false;
-      }
+      if (getActiveMapMode() === 'municipality' && bin.binType !== 'street') globalVisible = false;
+      if (getActiveMapMode() === 'campus' && bin.binType !== 'indoor') globalVisible = false;
 
       // 3. Task/Driver Visibility
       const isAssigned = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
@@ -1912,7 +1909,7 @@
     if (tbody && currentView === 'analytics') {
       tbody.innerHTML = bins.map(b => {
         const prediction = calculateGrowthPredictor(b);
-        const urgencyThreshold = systemSettings.systemMode === 'campus' ? 1 : 12;
+        const urgencyThreshold = getActiveMapMode() === 'campus' ? 1 : 12;
         const isUrgent = prediction.hours < urgencyThreshold && prediction.hours > 0;
         const pct = Math.round(b.fill_percent);
         const s = getStatusStyle(pct, b.last_seen);
@@ -2112,7 +2109,7 @@
       const pct = Math.round(b.fill_percent) || 0;
       const s = getStatusStyle(pct, b.last_seen);
       const pred = calculateGrowthPredictor(b);
-      const urgencyThreshold = systemSettings.systemMode === 'campus' ? 1 : 12;
+      const urgencyThreshold = getActiveMapMode() === 'campus' ? 1 : 12;
       const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < urgencyThreshold;
 
       const pos = indoorMapMode ? [b.y || 500, b.x || 500] : [b.lat || systemSettings.depotLat, b.lng || systemSettings.depotLng];
@@ -2250,10 +2247,10 @@
       for (const id in binsData) {
         const b = binsData[id];
 
-        // Global Deployment Lock for Stats
+        // Local View Deployment Lock for Stats
         let isVisible = true;
-        if (systemSettings.systemMode === 'municipality' && b.binType !== 'street') isVisible = false;
-        if (systemSettings.systemMode === 'campus' && b.binType !== 'indoor') isVisible = false;
+        if (getActiveMapMode() === 'municipality' && b.binType !== 'street') isVisible = false;
+        if (getActiveMapMode() === 'campus' && b.binType !== 'indoor') isVisible = false;
 
         if (!isVisible) continue;
 
@@ -2354,7 +2351,7 @@
     const pct = Math.round(bin.fill_percent);
     const s = getStatusStyle(pct, bin.last_seen);
     const pred = calculateGrowthPredictor(bin);
-    const urgencyThreshold = systemSettings.systemMode === 'campus' ? 1 : 12;
+    const urgencyThreshold = getActiveMapMode() === 'campus' ? 1 : 12;
     const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < urgencyThreshold;
 
     const size = indoorMapMode ? 36 : 24;
