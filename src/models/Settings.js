@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const settingsSchema = new mongoose.Schema({
   id: { type: String, default: "global_settings", unique: true },
-  pollingInterval: { type: Number, default: 2 },
+  pollingInterval: { type: Number, default: 10 },
   emailAlertsEnabled: { type: Boolean, default: true },
   alertThreshold: { type: Number, default: 80 },
   receiverEmail: { type: String, default: "ezzet.og.01@gmail.com" },

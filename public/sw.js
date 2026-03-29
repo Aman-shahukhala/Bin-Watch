@@ -7,7 +7,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Purge all existing caches to ensure a fresh state
   event.waitUntil(
     caches.keys().then((names) => {
       return Promise.all(names.map((name) => caches.delete(name)));
@@ -16,12 +15,8 @@ self.addEventListener('activate', (event) => {
 });
 
 // "Live-Stream" Strategy: 
-// We include a fetch listener to satisfy PWA criteria, but we do NOT 
-// intercept the requests. This allows the browser to handle them 
-// directly via the standard network stack, avoiding CSP "connect-src" 
-// issues and providing the best "Zero-Cache" performance.
+// Explicit fetch pass-through to satisfy PWA criteria while 
+// ensuring all requests hit the network directly.
 self.addEventListener('fetch', (event) => {
-  // Empty listener is sufficient for PWA "Installable" status 
-  // in modern browsers. It defaults to normal browser fetch.
-  return;
+  event.respondWith(fetch(event.request));
 });
