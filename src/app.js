@@ -8,6 +8,7 @@ const MongoDBStore = require("connect-mongodb-session")(session);
 const authRoutes = require("./routes/authRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const authMiddleware = require("./middleware/auth");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const helmet = require("helmet");
 

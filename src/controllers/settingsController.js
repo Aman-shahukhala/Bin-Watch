@@ -15,10 +15,10 @@ exports.getSettings = async (req, res) => {
 
 exports.updateSettings = async (req, res) => {
   try {
-    const { pollingInterval, emailAlertsEnabled, alertThreshold, receiverEmail, soundAlertsEnabled, depotLat, depotLng } = req.body;
+    const { pollingInterval, emailAlertsEnabled, alertThreshold, receiverEmail, soundAlertsEnabled, depotLat, depotLng, systemMode, buildingName } = req.body;
     const settings = await Settings.findOneAndUpdate(
       { id: "global_settings" },
-      { $set: { pollingInterval, emailAlertsEnabled, alertThreshold, receiverEmail, soundAlertsEnabled, depotLat, depotLng } },
+      { $set: { pollingInterval, emailAlertsEnabled, alertThreshold, receiverEmail, soundAlertsEnabled, depotLat, depotLng, systemMode, buildingName } },
       { upsert: true, returnDocument: 'after' }
     );
     res.json({ success: true, settings });

@@ -7,6 +7,8 @@ const settingsSchema = new mongoose.Schema({
   alertThreshold: { type: Number, default: 80 },
   receiverEmail: { type: String, default: "ezzet.og.01@gmail.com" },
   soundAlertsEnabled: { type: Boolean, default: true },
+  systemMode: { type: String, enum: ['campus', 'municipality'], default: 'municipality' },
+  buildingName: { type: String, default: "Main Hub" },
   depotLat: { type: Number, default: 27.713384 },
   depotLng: { type: Number, default: 85.329393 }
 });

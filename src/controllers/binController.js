@@ -1,6 +1,7 @@
 const Bin = require("../models/Bin");
 const Settings = require("../models/Settings");
 const { sendAlertEmail } = require("../utils/mailer");
+const { notifyAdmins } = require("../utils/push");
 
 const calculateFill = (distance, binHeight) => {
   if (distance < 5) return 100;
@@ -20,8 +21,19 @@ exports.updateBin = async (req, res) => {
     if (!settings) settings = new Settings({ id: "global_settings" });
 
     let bin = await Bin.findOne({ id });
+    const isCampus = settings.systemMode === 'campus';
+
     if (!bin) {
-      bin = new Bin({ id, lat, lng });
+      bin = new Bin({ 
+        id, 
+        lat: settings.depotLat, 
+        lng: settings.depotLng,
+        binType: isCampus ? 'indoor' : 'street',
+        floor: isCampus ? 'Ground' : '',
+        x: isCampus ? 500 : 0,
+        y: isCampus ? 500 : 0
+      });
+      await bin.save();
     }
 
     const fill_percent = calculateFill(distance, bin.binHeight);
@@ -51,7 +63,7 @@ exports.updateBin = async (req, res) => {
             timestamp: new Date(),
             fill: fill_percent
           }],
-          $slice: -200
+          $slice: -1500
         }
       };
     }
@@ -67,6 +79,13 @@ exports.updateBin = async (req, res) => {
       bin.alert_sent = true;
       await bin.save();
       await sendAlertEmail(settings.receiverEmail, bin.nickname || id, fill_percent);
+      
+      // Trigger WebPush for Admins
+      await notifyAdmins({
+        title: `CRITICAL ALERT: ${bin.nickname || id}`,
+        body: `Bin reached ${fill_percent}% capacity. Immediate collection required.`,
+        icon: '/favicon.png'
+      });
     }
     if (fill_percent < 20 && bin.alert_sent) {
       bin.alert_sent = false;
@@ -100,12 +119,21 @@ exports.getBins = async (req, res) => {
 
 exports.renameBin = async (req, res) => {
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
-  const { id, nickname, binHeight } = req.body;
-  try {
-    const update = { nickname: String(nickname) };
-    if (binHeight !== undefined) update.binHeight = Number(binHeight);
-    await Bin.updateOne({ id: String(id) }, { $set: update });
-    res.json({ success: true });
+    const { id, nickname, binHeight, binType, floor, x, y, lat, lng } = req.body;
+    try {
+      const update = { 
+        nickname: String(nickname),
+        binType: String(binType || 'street'),
+        floor: String(floor || 'Ground'),
+        x: Number(x || 0),
+        y: Number(y || 0)
+      };
+      if (binHeight !== undefined) update.binHeight = Number(binHeight);
+      if (lat !== undefined) update.lat = Number(lat);
+      if (lng !== undefined) update.lng = Number(lng);
+
+      await Bin.updateOne({ id: String(id) }, { $set: update });
+      res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to apply naming configuration" });
   }

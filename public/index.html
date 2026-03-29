@@ -12,6 +12,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -266,10 +267,12 @@
     /* Summary Section */
     .summary-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
       margin-bottom: 32px;
     }
+    .summary-row .stat-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; }
+    .summary-row .stat-val { font-size: 32px; margin: 8px 0; }
 
     .stat-card {
       background: var(--card-bg);
@@ -346,9 +349,9 @@
 
     /* Map View */
     #map { height: 600px; width: 100%; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 4px solid var(--map-border); transition: border-color 0.3s; }
-    [data-theme="dark"] #map { filter: brightness(0.85) hue-rotate(10deg) saturate(0.9); }
+    [data-theme="dark"] #map { filter: brightness(0.9) hue-rotate(5deg) saturate(1.1); }
     
-    .map-container { display: grid; grid-template-columns: 1fr 340px; gap: 20px; height: 600px; }
+    .map-container { display: grid; grid-template-columns: 1fr 340px; gap: 20px; height: 750px; min-height: 70vh; }
     .map-sidebar { 
       background: var(--card-bg); border-radius: 24px; display: flex; flex-direction: column; height: 100%; overflow: hidden;
       border: 1px solid var(--card-border); backdrop-filter: blur(10px);
@@ -361,6 +364,23 @@
     }
     .map-item-card:hover { border-color: var(--accent-green); background: var(--card-bg); }
     .nav-status-box { padding: 16px; background: var(--header); color: #fff; border-radius: 0 0 24px 24px; }
+
+    /* Hub Switcher */
+    .hub-filter-group { display: flex; background: var(--toggle-bg); border-radius: 12px; padding: 4px; margin-bottom: 12px; border: 1px solid var(--card-border); }
+    .hub-filter-btn { flex: 1; padding: 8px; border: none; background: transparent; color: var(--text-muted); font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+    .hub-filter-btn.active { background: var(--card-bg); color: var(--accent-green); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+    /* Floor Switcher Logic */
+    #floor-switcher {
+      display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+    }
+    .floor-btn {
+      padding: 12px; border: 1px solid var(--card-border); border-radius: 12px; 
+      background: var(--card-bg); color: var(--text-main); font-weight: 700; font-size: 12px;
+      cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .floor-btn.active { background: var(--accent-green); color: #064E3B; border-color: transparent; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .floor-btn:hover:not(.active) { border-color: var(--accent-green); color: var(--accent-green); }
 
     /* Modal Style */
     .modal-overlay {
@@ -413,8 +433,10 @@
     .large-chart-wrap { height: 400px; margin-top: 20px; }
     .history-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
     .history-table th { text-align: left; padding: 16px 12px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--table-border); letter-spacing: 0.05em; }
-    .history-table td { padding: 16px 12px; font-size: 14px; border-bottom: 1px solid var(--log-border); vertical-align: middle; }
-    .history-scroll-wrap { max-height: 400px; overflow-y: auto; margin-top: 16px; border-bottom: 1px solid var(--table-border); }
+    .history-table td { padding: 12px 10px; font-size: 13px; border-bottom: 1px solid var(--log-border); vertical-align: middle; }
+    #analytics-table-v2 th, #analytics-table-v2 td { white-space: nowrap; }
+    #analytics-table-v2 td:first-child { font-weight: 700; width: 25%; }
+    .history-scroll-wrap { max-height: 400px; overflow-y: auto; margin-top: 16px; border-bottom: 1px solid var(--table-border); background: rgba(0,0,0,0.1); border-radius: 12px; }
     .back-btn { background: #1A1A2E; color: #fff; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; transition: 0.2s; }
     .back-btn:hover { background: #2A1A4E; }
 
@@ -434,26 +456,35 @@
         position: fixed; bottom: 0; left: 0; right: 0;
         height: 70px; margin: 0; padding: 0 10px;
         background: #1A1A2E; border-top: 1px solid rgba(255,255,255,0.1);
-        justify-content: space-around; z-index: 2000;
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+        display: grid; grid-template-columns: repeat(5, 1fr);
+        z-index: 2000; box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
       }
-      .nav-btn { flex: 1; justify-content: center; font-size: 12px; }
-      .nav-btn span { display: none; }
-      .nav-btn i { margin-right: 0 !important; }
-      .nav-btn.active::after { bottom: auto; top: 0; }
+      .nav-btn { justify-content: center; font-size: 10px; flex-direction: column; gap: 4px; }
+      .nav-btn span { display: block; font-size: 9px; opacity: 0.8; }
+      .nav-btn i { width: 18px !important; margin: 0 !important; }
       
       main { padding: 20px 16px 100px 16px; }
-      .summary-row { grid-template-columns: 1fr; }
-      .bins-grid { grid-template-columns: 1fr; }
       
-      .stat-card { padding: 16px; }
-      .stat-val { font-size: 28px; }
+      /* Analytics Mobile Grid */
+      .summary-row, #global-stats-row { 
+        display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; 
+      }
+      #global-stats-row > div:nth-child(5) { grid-column: span 2; }
+      
+      .stat-card { padding: 12px !important; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; }
+      .stat-val { font-size: 24px !important; margin: 4px 0 !important; }
+      .stat-label { font-size: 10px !important; opacity: 0.7; }
       
       #map { height: 350px; border-radius: 16px; }
-      .large-chart-wrap { height: 300px; }
-      
-      .bin-card { padding: 16px; }
-      .modal { width: 90%; padding: 24px; }
+      .modal { width: 92%; padding: 20px; }
+
+      /* Mobile Table/Cards Logic */
+      #analytics-table-v2 thead { display: none; }
+      #analytics-table-v2 tr { display: flex; flex-direction: column; background: var(--toggle-bg); margin-bottom: 12px; border-radius: 12px; padding: 12px; border: 1px solid var(--card-border); }
+      #analytics-table-v2 td { display: flex; justify-content: space-between; align-items: center; padding: 6px 0 !important; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px !important; }
+      #analytics-table-v2 td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+      #analytics-table-v2 td:first-child { flex-direction: column; align-items: flex-start; border: none; }
+      #analytics-table-v2 td:first-child::before { margin-bottom: 4px; }
     }
 
     @keyframes pulse-amber {
@@ -605,13 +636,20 @@
         <div class="map-sidebar-search">
           <h3 style="font-size: 14px; margin-bottom:12px; font-family:'Nunito';">Fleet Hub</h3>
           
+          <div class="hub-filter-group">
+             <button class="hub-filter-btn active" id="hub-all" onclick="setHubFilter('all')">ALL</button>
+             <button class="hub-filter-btn" id="hub-street" onclick="setHubFilter('street')">STREET</button>
+             <button class="hub-filter-btn" id="hub-campus" onclick="setHubFilter('campus')">CAMPUS</button>
+          </div>
+          
           <div style="position:relative;">
             <input type="text" id="map-search" placeholder="Search bins..." oninput="filterMapSidebar()" style="width:100%; padding:10px 10px 10px 34px; border-radius:10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">
             <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:14px; color:var(--text-muted);"></i>
           </div>
           <div id="admin-driver-filter" style="display:none; margin-top:12px;">
+            <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:6px; margin-left:2px;">Filter Fleet View</div>
             <select id="map-driver-select" onchange="filterMapByDriver()" style="width:100%; padding:8px 12px; border-radius:10px; font-size:12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">
-               <option value="all">Full Fleet Overview</option>
+               <option value="all">Full Fleet (Admin Overview)</option>
             </select>
           </div>
           <button class="test-btn" style="width:100%; margin-top:12px; font-size:13px; height:44px; border-radius:12px;" onclick="generateRoute()">
@@ -621,6 +659,22 @@
           <button id="driver-shift-btn" class="ctl-btn" style="display:none; width:100%; margin-top:12px; font-size:13px; height:44px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); font-weight:700;" onclick="toggleDriverShift()">
             <i data-lucide="radio" style="width:16px; margin-right:8px; vertical-align:middle;"></i> <span id="driver-shift-text">Start Shift (Broadcast GPS)</span>
           </button>
+
+          <!-- Heatmap Toggle -->
+          <button id="map-heatmap-btn" class="ctl-btn" style="width:100%; margin-top:8px; font-size:13px; height:44px; border-radius:12px; border:1px solid var(--card-border); background:var(--toggle-bg);" onclick="toggleHeatmap()">
+            <i data-lucide="flame" style="width:16px; margin-right:8px; vertical-align:middle; color:var(--accent-amber);"></i> <span>Enable Heatmap View</span>
+          </button>
+
+          <!-- Floor Switcher (Visible in Campus Mode) -->
+          <div id="floor-switcher">
+             <button class="floor-btn" id="btn-floor-Ground" onclick="switchFloor('Ground')"><i data-lucide="layers" style="width:14px;"></i> Ground Floor</button>
+             <button class="floor-btn" id="btn-floor-1st" onclick="switchFloor('1st')"><i data-lucide="layers" style="width:14px;"></i> 1st Floor</button>
+          </div>
+          <div id="calibration-hud" style="display:none;">
+             <i data-lucide="crosshair" style="width:18px;"></i>
+             <span>PLACEMENT MODE: Select New Spot on Map</span>
+             <button class="test-btn" onclick="exitCalibrationMode()" style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.5); padding:4px 12px; font-size:11px;">Cancel</button>
+          </div>
         </div>
 
         <div class="map-sidebar-list" id="map-sidebar-list">
@@ -644,30 +698,35 @@
 
   <!-- ANALYTICS VIEW -->
   <div id="view-analytics" class="view">
-    <div class="summary-row" id="global-stats-row" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="summary-row" id="global-stats-row">
       <div class="stat-card">
         <div class="stat-label">Efficiency Grade</div>
         <div id="global-efficiency-grade" class="stat-val" style="color:var(--nav-inactive);">--</div>
-        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Fleet Deployment Grade</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Fleet Performance</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Avg. Collection Fill</div>
-        <div id="global-efficiency" class="stat-val">--%</div>
-        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Fill level when picked up</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Waste Processed</div>
-        <div id="global-total-waste" class="stat-val">-- L</div>
-        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Organization Fleet Total</div>
+        <div class="stat-label">Green Impact</div>
+        <div id="global-co2" class="stat-val" style="color:var(--accent-green);">0.00 kg</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">CO2 Emissions Saved</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Active Deployments</div>
         <div id="global-active-bins" class="stat-val">--</div>
-        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Reporting Hardware</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Reporting Nodes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Collection Efficiency</div>
+        <div id="global-efficiency" class="stat-val" style="color:var(--accent-blue);">--%</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Average Fill at Pickup</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Waste Diverted</div>
+        <div id="global-total-waste" class="stat-val">0 L</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Total Lifecycle Volume</div>
       </div>
     </div>
 
-    <div class="detail-grid" style="margin-bottom: 32px;">
+    <div class="detail-grid" style="margin-bottom: 24px;">
       <div class="detail-card">
         <h3 style="font-family:'Nunito'; margin-bottom:20px;">Strategy Distribution</h3>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Frequency of pickups at specific fill levels. Goal: Shift to the right (80-100%).</p>
@@ -675,27 +734,25 @@
           <canvas id="distribution-chart"></canvas>
         </div>
       </div>
-      <div class="detail-card">
-        <h3 style="font-family:'Nunito'; margin-bottom:20px;">Fleet Health & Growth Forecast</h3>
-      <div class="history-scroll-wrap">
-        <table class="history-table">
+    </div>
+
+    <div class="detail-card" style="margin-bottom: 32px;">
+      <h3 style="font-family:'Nunito'; margin-bottom:20px;">Fleet Health & Growth Forecast</h3>
+      <div class="history-scroll-wrap" style="max-height: 500px;">
+        <table class="history-table" id="analytics-table-v2">
           <thead>
-        <div class="history-scroll-wrap">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Bin Nickname</th>
-                <th>Current Load</th>
-                <th>Trend</th>
-                <th>Predicted 100%</th>
-                <th>Assignment</th>
-              </tr>
-            </thead>
-            <tbody id="analytics-table-body">
-              <!-- Data dynamically here -->
-            </tbody>
-          </table>
-        </div>
+            <tr>
+              <th>Bin Nickname</th>
+              <th>Current Load</th>
+              <th>Trend</th>
+              <th>Predicted 100%</th>
+              <th>Assignment</th>
+            </tr>
+          </thead>
+          <tbody id="analytics-table-body">
+            <!-- Data dynamically here -->
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -728,11 +785,6 @@
       </div>
     </div>
   </div>
-
-        </table>
-      </div>
-    </div>
-  </div>
   <div id="view-settings" class="view">
     <div class="stat-card" style="max-width: 800px; margin: 0 auto;">
       <h2 style="font-family: 'Nunito'; font-weight: 800; margin-bottom: 8px;">System Preferences</h2>
@@ -749,6 +801,14 @@
             <div class="settings-group">
               <label>Alert Threshold (%)</label>
               <input type="number" id="set-threshold" min="1" max="100" required>
+            </div>
+            <div class="settings-group">
+              <label>Global Deployment Mode</label>
+              <select id="set-mode" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--text-main);">
+                <option value="municipality">Municipality (Street Only)</option>
+                <option value="campus">College (Campus Only)</option>
+                <option value="both">Enterprise (Street + Campus)</option>
+              </select>
             </div>
             <div class="settings-group" style="margin-top: 10px;">
               <div class="toggle-wrap">
@@ -782,9 +842,14 @@
                 </div>
                 <button type="button" class="ctl-btn" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border);" onclick="playAlertSound()">Test Alarm</button>
               </div>
-              <button type="button" id="notif-btn" class="ctl-btn" style="width: 100%; height: 48px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--toggle-bg); display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="requestNotificationPermission()">
-                <i data-lucide="bell-ring" style="width:16px;"></i> Enable Desktop Alerts
-              </button>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="notif-btn" class="ctl-btn" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--toggle-bg); display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="requestNotificationPermission()">
+                  <i data-lucide="bell-ring" style="width:16px;"></i> Enable Desktop Alerts
+                </button>
+                <button type="button" id="test-notif-btn" class="ctl-btn" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--toggle-bg); display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="sendTestPush()">
+                  <i data-lucide="send" style="width:16px;"></i> Test Push
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -837,6 +902,33 @@
       <label>Bin Height (cm)</label>
       <input type="number" id="height-input" placeholder="Default: 20">
     </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div class="settings-group">
+        <label>Type</label>
+        <select id="type-input">
+          <option value="street">Street (GPS)</option>
+          <option value="indoor">Indoor (Floor)</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label>Level</label>
+        <select id="floor-input">
+          <option value="Ground">Ground Floor</option>
+          <option value="1st">1st Floor</option>
+        </select>
+      </div>
+    </div>
+    <div id="schematic-pos-group" style="display:none; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+      <div class="settings-group">
+        <label>Schematic X</label>
+        <input type="number" id="pos-x" placeholder="0">
+      </div>
+      <div class="settings-group">
+        <label>Schematic Y</label>
+        <input type="number" id="pos-y" placeholder="0">
+      </div>
+    </div>
+    <p style="font-size:10px; color:var(--text-muted); margin-top:8px;">Tip: Use X/Y for indoor floor plans instead of GPS coordinates.</p>
     <div class="modal-actions">
       <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
       <button class="modal-btn save" onclick="saveRename()">Apply Changes</button>
@@ -859,6 +951,7 @@
     <div class="settings-group">
       <label>Access Role</label>
       <select id="staff-role" onchange="toggleBinSelector()">
+        <option value="janitor">Janitor (Walking Staff)</option>
         <option value="driver">Driver (Logistics Only)</option>
         <option value="analytics">Analytics (Read Only)</option>
         <option value="admin">Administrator (Full Access)</option>
@@ -974,7 +1067,8 @@
 
   let currentView = 'status';
   let binsData = {};
-  let lastBinsDataHash = ""; // For diffing
+  let activityLog = []; // Restore missing global for logs
+  let lastBinsDataHash = "";
   let lastPctMap = {};
   let teamData = [];
   let mapDriverFilter = 'all';
@@ -1025,10 +1119,27 @@
       showToast("Browser does not support notifications", "var(--accent-red)");
       return;
     }
-    Notification.requestPermission().then(permission => {
+    Notification.requestPermission().then(async (permission) => {
       if (permission === "granted") {
-        showToast("Notifications Enabled!", "var(--accent-green)");
-        document.getElementById('notif-btn').style.display = 'none';
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: 'BDlIgwN5eXGNhkbmlHyk-LWRgSRrwwCemoizJsv_AEBirKnWKFDFXvZ9QTOwSqzU5cEB6Tnaw3DqTFW2eFFQGLs'
+          });
+
+          await fetch('/api/notifications/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription)
+          });
+
+          showToast("Live Dashboard Alerts Enabled!", "var(--accent-green)");
+          document.getElementById('notif-btn').style.display = 'none';
+        } catch (err) {
+          console.error("Push Subscription Error:", err);
+          showToast("Push Registration Failed", "var(--accent-red)");
+        }
       }
     });
   }
@@ -1037,6 +1148,23 @@
     if (Notification.permission === "granted") {
       new Notification(title, { body, icon: '/favicon.ico' });
     }
+  }
+
+  let calibrationState = { active: false, binId: null };
+
+  function enterCalibrationMode(id) {
+    calibrationState = { active: true, binId: id };
+    document.getElementById('calibration-hud').style.display = 'flex';
+    document.getElementById('map').classList.add('map-calibrating');
+    if (map) map.closePopup();
+    showToast(`Click any spot on the map to set location for ${binsData[id].nickname || id}`, "var(--accent-amber)");
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function exitCalibrationMode() {
+    calibrationState = { active: false, binId: null };
+    document.getElementById('calibration-hud').style.display = 'none';
+    document.getElementById('map').classList.remove('map-calibrating');
   }
 
   async function loadSettings() {
@@ -1052,9 +1180,18 @@
       document.getElementById('set-sound').checked = systemSettings.soundAlertsEnabled;
       document.getElementById('set-depot-lat').value = systemSettings.depotLat;
       document.getElementById('set-depot-lng').value = systemSettings.depotLng;
+      document.getElementById('set-mode').value = systemSettings.systemMode || 'both';
 
       restartPolling();
-      updateDepotPointer(); // depot pointer safe to call; it guards !map internally
+      toggleMapDeploymentMode(systemSettings.systemMode || 'both');
+
+      // Initialize Hub UI based on loaded mode
+      let activeHub = 'all';
+      if (systemSettings.systemMode === 'municipality') activeHub = 'street';
+      else if (systemSettings.systemMode === 'campus') activeHub = 'campus';
+      
+      setHubFilter(activeHub, true);
+      updateDepotPointer();
     } catch (e) {
       console.error("Settings Load Error:", e);
     }
@@ -1068,7 +1205,8 @@
       emailAlertsEnabled: document.getElementById('set-email-on').checked,
       soundAlertsEnabled: document.getElementById('set-sound').checked,
       depotLat: parseFloat(document.getElementById('set-depot-lat').value),
-      depotLng: parseFloat(document.getElementById('set-depot-lng').value)
+      depotLng: parseFloat(document.getElementById('set-depot-lng').value),
+      systemMode: document.getElementById('set-mode').value
     };
 
     try {
@@ -1081,6 +1219,7 @@
         showToast("✓ Settings Saved Successfully", 'var(--accent-green)');
         addAlert("System: Settings updated successfully", 'var(--accent-green)');
         systemSettings = updated;
+        toggleMapDeploymentMode(updated.systemMode);
         updateDepotPointer();
         restartPolling();
       }
@@ -1145,16 +1284,164 @@
     if (view === 'analytics') updateAnalytics();
     if (view === 'team' && currentUser && currentUser.role === 'admin') fetchTeam();
     if (view === 'settings' && currentUser && currentUser.role === 'admin') loadSettings();
+    
+    // Ensure map handles mode correctly on view switch
+    if (view === 'map' && map) setTimeout(() => map.invalidateSize(), 100);
   }
 
-  function toggleMapSidebar() {
-    const sidebar = document.getElementById('map-sidebar');
-    const chevron = document.getElementById('sidebar-chevron');
-    if (!sidebar) return;
-    const isExpanded = sidebar.classList.toggle('expanded');
-    if (chevron) chevron.style.transform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
-    // Ensure map resizes correctly when sidebar moves
-    if (map) setTimeout(() => map.invalidateSize(), 360);
+  async function sendTestPush() {
+    try {
+      showToast("Sending test notification...", "var(--accent-green)");
+      const res = await fetch('/api/notifications/test', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Test notification delivered!", "var(--accent-green)");
+      } else {
+        showToast(data.error || "Failed to send test push", "var(--accent-red)");
+      }
+    } catch (err) {
+      console.error("Test Push Error:", err);
+      showToast("Network Error: Could not connect to push service", "var(--accent-red)");
+    }
+  }
+
+  // --- INDOOR MAPPING & FLOOR LOGIC ---
+  let currentFloor = 'Ground';
+  let groundOverlay = null;
+  let firstOverlay = null;
+  let indoorMapMode = false;
+
+  const floorImages = {
+    'Ground': '/FloorPlan/GroundFloor.png',
+    '1st': '/FloorPlan/FirstFloor.png'
+  };
+
+  function switchFloor(f) {
+    currentFloor = f;
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-floor-${f}`).classList.add('active');
+    
+    if (indoorMapMode) {
+      updateIndoorLayers();
+      refreshMarkers();
+    }
+  }
+
+  function updateIndoorLayers() {
+    if (!map || !indoorMapMode) return;
+    
+    // Remove existing overlays
+    if (groundOverlay) map.removeLayer(groundOverlay);
+    if (firstOverlay) map.removeLayer(firstOverlay);
+
+    const imgUrl = floorImages[currentFloor];
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const bounds = [[0, 0], [h, w]]; 
+      
+      if (currentFloor === 'Ground') {
+        groundOverlay = L.imageOverlay(imgUrl, bounds).addTo(map);
+      } else {
+        firstOverlay = L.imageOverlay(imgUrl, bounds).addTo(map);
+      }
+      
+      map.fitBounds(bounds);
+    };
+    img.src = imgUrl;
+  }
+
+  function toggleMapDeploymentMode(mode) {
+    indoorMapMode = (mode === 'campus' || mode === true);
+    const floorSwitcher = document.getElementById('floor-switcher');
+    if (floorSwitcher) floorSwitcher.style.display = indoorMapMode ? 'flex' : 'none';
+    
+    const switcherBar = document.querySelector('.hub-filter-btn')?.parentElement;
+    if (switcherBar) {
+      switcherBar.style.display = (systemSettings.systemMode === 'both') ? 'flex' : 'none';
+    }
+
+    if (map) {
+      map.remove();
+      map = null;
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) mapContainer.innerHTML = '';
+      initMap();
+    }
+  }
+
+  // --- HEATMAP & SUSTAINABILITY LOGIC ---
+  let heatmapLayer = null;
+  let isHeatmapActive = false;
+
+  function toggleHeatmap() {
+    if (!map) return;
+    isHeatmapActive = !isHeatmapActive;
+    const btn = document.getElementById('map-heatmap-btn');
+    
+    if (isHeatmapActive) {
+      btn.style.background = 'var(--accent-amber)';
+      btn.style.color = 'white';
+      btn.querySelector('span').textContent = 'Disable Heatmap View';
+      if (markerGroup) map.removeLayer(markerGroup);
+      updateHeatmap();
+    } else {
+      btn.style.background = 'var(--toggle-bg)';
+      btn.style.color = 'var(--text-main)';
+      btn.querySelector('span').textContent = 'Enable Heatmap View';
+      if (heatmapLayer) map.removeLayer(heatmapLayer);
+      if (markerGroup) map.addLayer(markerGroup);
+    }
+  }
+
+  function updateHeatmap() {
+    if (!map || !isHeatmapActive) return;
+    if (heatmapLayer) map.removeLayer(heatmapLayer);
+    
+    const heatPoints = Object.values(binsData).map(b => {
+      const pos = indoorMapMode ? [b.y || 500, b.x || 500] : [b.lat || systemSettings.depotLat, b.lng || systemSettings.depotLng];
+      return [pos[0], pos[1], (b.fill_percent / 100)];
+    });
+    
+    heatmapLayer = L.heatLayer(heatPoints, {
+      radius: 40,
+      blur: 25,
+      maxZoom: 17,
+      gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1: 'red' }
+    }).addTo(map);
+  }
+
+  function updateSustainability(actualDistanceKm) {
+    const binCount = Object.keys(binsData).length || 1;
+    
+    if (indoorMapMode) {
+      // CAMPUS MODE: Steps Saved
+      // Assume 250 steps per bin for a non-optimized visit
+      const baselineSteps = binCount * 250;
+      // 1km ~ 1300 steps
+      const actualSteps = actualDistanceKm * 1312;
+      const stepsSaved = Math.max(0, baselineSteps - actualSteps);
+      
+      const co2El = document.getElementById('global-co2');
+      if (co2El) {
+        co2El.textContent = Math.round(stepsSaved) + ' steps';
+        const label = co2El.previousElementSibling;
+        if (label) label.textContent = 'CAMPUS FOOTPRINT REDUCTION';
+      }
+    } else {
+      // MUNICIPALITY MODE: CO2 Saved
+      const baselineDist = binCount * 2.5; 
+      const savings = Math.max(0, baselineDist - actualDistanceKm);
+      const co2Saved = savings * 0.12;
+      
+      const el = document.getElementById('global-co2');
+      if (el) {
+        el.textContent = co2Saved.toFixed(2) + ' kg';
+        const label = el.previousElementSibling;
+        if (label) label.textContent = 'ESTIMATED CO2 SAVED';
+      }
+    }
   }
 
   // ── Team & Role Management ─────────────────────
@@ -1180,9 +1467,14 @@
 
       // Update Map Filter Dropdown
       const select = document.getElementById('map-driver-select');
+      const currentVal = mapDriverFilter; // Preserve selection
       const drivers = teamData.filter(u => u.role === 'driver');
-      select.innerHTML = '<option value="all">Full Fleet Overview</option>' + 
-        drivers.map(d => `<option value="${d._id}">${d.username} (Assigned Only)</option>`).join('');
+      
+      select.innerHTML = `
+        <option value="all">Full Fleet (Admin Overview)</option>
+        ${drivers.map(d => `<option value="${d._id}">Assignee: ${d.username}</option>`).join('')}
+      `;
+      select.value = currentVal;
 
       if (window.lucide) lucide.createIcons();
     } catch (err) { console.error("Fetch Team Error:", err); }
@@ -1298,7 +1590,7 @@
 
   function toggleBinSelector() {
     const role = document.getElementById('staff-role').value;
-    document.getElementById('bin-selector-group').style.display = role === 'driver' ? 'block' : 'none';
+    document.getElementById('bin-selector-group').style.display = (role === 'driver' || role === 'janitor') ? 'block' : 'none';
   }
 
   async function saveStaff() {
@@ -1335,47 +1627,129 @@
     } catch (err) { console.error("Remove Staff Error:", err); }
   }
 
+  let hubFilter = 'all';
+
+  function setHubFilter(hub, silent = false) {
+    hubFilter = hub;
+    document.querySelectorAll('.hub-filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`hub-${hub.toLowerCase()}`).classList.add('active');
+    
+    // Sync with Global Mode
+    if (!silent && (hub === 'street' || hub === 'campus')) {
+      systemSettings.systemMode = hub === 'street' ? 'municipality' : 'campus';
+      saveSettings(); // Persist selection
+      toggleMapDeploymentMode(systemSettings.systemMode);
+    } else if (!silent && hub === 'all' && systemSettings.systemMode === 'campus') {
+      // In ALL view with campus artifacts, ensure we don't switch away but show all markers
+      toggleMapDeploymentMode('campus');
+    }
+
+    updateMapSidebar();
+    refreshMarkers();
+  }
+
   // ── Logistics & Map Navigation Hub ─────────────
   function updateMapSidebar() {
-    if (!currentUser) return; // Guard against uninitialized role
+    if (!currentUser || !systemSettings || !systemSettings.systemMode) return; 
+    
+    let targetBinIds = null;
     const searchEl = document.getElementById('map-search');
     const list = document.getElementById('map-sidebar-list');
     if (!searchEl || !list) return;
     const search = (searchEl.value || "").toLowerCase();
     
+    // Auto-visibility for the Switcher Bar
+    const switcherBtn = document.querySelector('.hub-filter-btn');
+    const switcherBar = switcherBtn ? switcherBtn.closest('.hub-filter-group') || switcherBtn.parentElement : null;
+    if (switcherBar) {
+      switcherBar.style.display = (systemSettings.systemMode === 'both') ? 'flex' : 'none';
+    }
+
     // Filter by Search & Driver
-    let targetBinIds = null;
+    const isGlobal = mapDriverFilter === 'all-global';
+    
     if (currentUser.role === 'driver') {
       targetBinIds = currentUser.assignedBins || [];
-    } else if (mapDriverFilter !== 'all') {
+    } else if (mapDriverFilter !== 'all' && !isGlobal) {
       const targetDriver = teamData.find(u => u._id === mapDriverFilter);
       targetBinIds = targetDriver?.assignedBins || [];
     }
 
-    const isAdminFleet = currentUser.role === 'admin' && mapDriverFilter === 'all';
+    const isAdminFleet = (currentUser.role === 'admin' && mapDriverFilter === 'all') || isGlobal;
     
     const filtered = Object.values(binsData).filter(b => {
+      // 1. Global Deployment Lock (with smart legacy defaults)
+      const bType = b.binType || (b.floor ? 'indoor' : 'street');
+      if (systemSettings.systemMode === 'municipality' && bType !== 'street') return false;
+      if (systemSettings.systemMode === 'campus' && bType !== 'indoor') return false;
+
+      // 2. Hub Filter (only relevant if mode is 'both' and not 'all')
+      if (systemSettings.systemMode === 'both' && hubFilter !== 'all') {
+        if (hubFilter === 'street' && bType !== 'street') return false;
+        if (hubFilter === 'campus' && bType !== 'indoor') return false;
+      }
+
+      // 3. Search Filter
       const matchesSearch = (b.nickname || '').toLowerCase().includes(search) || b.id.toLowerCase().includes(search);
+      
+      // 4. Driver Filter
       const matchesDriver = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(b.id) : true);
+
       return matchesSearch && matchesDriver;
     });
 
-    list.innerHTML = filtered.map(b => {
-      const pct = Math.round(b.fill_percent);
-      const pred = calculateGrowthPredictor(b);
-      const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
-      const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
+    const filteredLog = activityLog.filter(log => {
+      const b = binsData[log.binId];
+      if (!b) return true; // Keep trace-free logs? No, hide if bin unknown
       
-      return `
-        <div class="map-item-card" onclick="zoomToBin('${b.id}')" style="${isPredictive ? 'border-left: 3px solid var(--accent-amber);' : ''}">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-             <div style="font-weight:700; font-size:13px;">${b.nickname || b.id}</div>
-             <div style="font-size:11px; color:${color}; font-weight:800;">${pct}%</div>
+      // Global Deployment Lock for Logs (with legacy support)
+      const bType = b.binType || (b.floor ? 'indoor' : 'street');
+      if (systemSettings.systemMode === 'municipality' && bType !== 'street') return false;
+      if (systemSettings.systemMode === 'campus' && bType !== 'indoor') return false;
+      
+      return true;
+    });
+
+    const logEl = document.getElementById('activity-log');
+    if (logEl) {
+      logEl.innerHTML = filteredLog.map(log => {
+        const style = getStatusStyle(log.fill);
+        return `
+          <div class="log-entry" style="border-left: 3px solid ${style.color}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div style="font-weight:700; font-size:13px;">${log.binNickname || log.binId}</div>
+              <div style="font-size:10px; opacity:0.6;">${log.time}</div>
+            </div>
+            <div style="font-size:11px; margin-top:2px;">
+              Reported <strong>${log.fill}%</strong> fill level. 
+              <span class="status-badge ${style.badge}" style="font-size:9px; padding:1px 6px; margin-left:4px;">${style.label}</span>
+            </div>
           </div>
-          ${isPredictive ? `<div style="font-size:9px; color:var(--accent-amber); font-weight:700; margin-top:2px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
-          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
-        </div>
-      `;
+        `;
+      }).join('');
+    }
+
+    list.innerHTML = filtered.map(b => {
+      try {
+        const pct = Math.round(b.fill_percent) || 0;
+        const pred = calculateGrowthPredictor(b) || { trend: 'none', hours: 0 };
+        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
+        const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
+        
+        return `
+          <div class="map-item-card" onclick="zoomToBin('${b.id}')" style="${isPredictive ? 'border-left: 3px solid var(--accent-amber);' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+               <div style="font-weight:700; font-size:13px;">${b.nickname || b.id}</div>
+               <div style="font-size:11px; color:${color}; font-weight:800;">${pct}%</div>
+            </div>
+            ${isPredictive ? `<div style="font-size:9px; color:var(--accent-amber); font-weight:700; margin-top:2px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
+            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated || 'Just now'}</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error("Sidebar item render error:", e);
+        return '';
+      }
     }).join('');
   }
 
@@ -1391,21 +1765,50 @@
     if (!currentUser || !map || !markerGroup) return; 
     
     let targetBinIds = null;
+    const isGlobal = mapDriverFilter === 'all-global';
+    
     if (currentUser.role === 'driver') {
       targetBinIds = currentUser.assignedBins || [];
-    } else if (mapDriverFilter !== 'all') {
+    } else if (mapDriverFilter !== 'all' && !isGlobal) {
       const targetDriver = teamData.find(u => u._id === mapDriverFilter);
       targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
     }
 
-    const isAdminFleet = currentUser.role === 'admin' && mapDriverFilter === 'all';
+    const isAdminFleet = (currentUser.role === 'admin' && mapDriverFilter === 'all') || isGlobal;
 
     Object.keys(markers).forEach(id => {
-      const isVisible = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
-      if (isVisible) {
-         if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
+      const bin = binsData[id];
+      if (!bin) return;
+
+      // 1. Global Deployment Lock
+      let globalVisible = true;
+      if (systemSettings.systemMode === 'municipality' && bin.binType !== 'street') globalVisible = false;
+      if (systemSettings.systemMode === 'campus' && bin.binType !== 'indoor') globalVisible = false;
+
+      // 2. Hub Filter Visibility (only if set to both)
+      if (systemSettings.systemMode === 'both') {
+         if (hubFilter === 'street' && bin.binType !== 'street') globalVisible = false;
+         if (hubFilter === 'campus' && bin.binType !== 'indoor') globalVisible = false;
+      }
+
+      // 3. Task/Driver Visibility
+      const isAssigned = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
+      
+      // 4. Deployment Mode Visibility
+      let isModeVisible = false;
+      if (indoorMapMode) {
+        isModeVisible = (bin.binType === 'indoor' && bin.floor === currentFloor);
       } else {
-         if (markerGroup.hasLayer(markers[id])) markerGroup.removeLayer(markers[id]);
+        isModeVisible = (bin.binType !== 'indoor');
+      }
+
+      const isVisible = globalVisible && isAssigned && isModeVisible;
+      const isCurrentlyInGroup = markerGroup.hasLayer(markers[id]);
+
+      if (isVisible && !isCurrentlyInGroup) {
+        markerGroup.addLayer(markers[id]);
+      } else if (!isVisible && isCurrentlyInGroup) {
+        markerGroup.removeLayer(markers[id]);
       }
     });
   }
@@ -1413,8 +1816,28 @@
   function zoomToBin(id) {
     const bin = binsData[id];
     if (bin && map) {
-      map.setView([bin.lat, bin.lng], 18, { animate: true });
-      if (markers[id]) markers[id].openPopup();
+      // 1. Check if we need a Mode Switch (Municipality <-> Campus)
+      const isIndoorBin = bin.binType === 'indoor';
+      
+      if (isIndoorBin !== indoorMapMode) {
+        showToast(`Switching Hub: ${isIndoorBin ? 'Campus' : 'Municipality'}`, "var(--accent-blue)");
+        toggleMapDeploymentMode(isIndoorBin ? 'campus' : 'municipality');
+        // If indoor, we must also ensure we are on the right floor
+        if (isIndoorBin && bin.floor) {
+          switchFloor(bin.floor);
+        }
+      } else if (isIndoorBin && bin.floor !== currentFloor) {
+        // Just a floor switch
+        switchFloor(bin.floor);
+      }
+
+      // 2. Perform Zoom
+      setTimeout(() => {
+        const pos = isIndoorBin ? [bin.y || 500, bin.x || 500] : [bin.lat, bin.lng];
+        const zoomLevel = isIndoorBin ? 1 : 17;
+        map.setView(pos, zoomLevel, { animate: true });
+        if (markers[id]) markers[id].openPopup();
+      }, 300); // Short delay to allow map re-init if mode switched
     }
   }
 
@@ -1452,14 +1875,16 @@
     }
 
     const elGrade = document.getElementById('global-efficiency-grade');
-    if (elGrade.textContent !== grade) {
+    if (elGrade && elGrade.textContent !== grade) {
       elGrade.textContent = grade;
       elGrade.style.color = gradeColor;
     }
 
     const elEff = document.getElementById('global-efficiency');
-    const effText = avgCollectionFill > 0 ? `${avgCollectionFill}%` : "No data";
-    if (elEff.textContent !== effText) elEff.textContent = effText;
+    if (elEff) {
+      const effText = avgCollectionFill > 0 ? `${avgCollectionFill}%` : "No data";
+      if (elEff.textContent !== effText) elEff.textContent = effText;
+    }
     
     // Distribution Chart Update
     if (currentView === 'analytics') {
@@ -1468,25 +1893,41 @@
 
     // 3. Global Totals
     const elActive = document.getElementById('global-active-bins');
-    if (elActive.textContent !== String(bins.length)) elActive.textContent = bins.length;
+    if (elActive && elActive.textContent !== String(bins.length)) elActive.textContent = bins.length;
     
     const elWaste = document.getElementById('global-total-waste');
-    const wasteText = (collectionFillValues.length * 20).toLocaleString() + " L";
-    if (elWaste.textContent !== wasteText) elWaste.textContent = wasteText;
+    if (elWaste) {
+      const wasteText = (collectionFillValues.length * 20).toLocaleString() + " L";
+      if (elWaste.textContent !== wasteText) elWaste.textContent = wasteText;
+    }
 
     // 4. Growth Predictor & Table
     const tbody = document.getElementById('analytics-table-body');
-    if (currentView === 'analytics') {
+    if (tbody && currentView === 'analytics') {
       tbody.innerHTML = bins.map(b => {
         const prediction = calculateGrowthPredictor(b);
         const isUrgent = prediction.hours < 12 && prediction.hours > 0;
+        const pct = Math.round(b.fill_percent);
+        const s = getStatusStyle(pct, b.last_seen);
+
         return `
           <tr>
-            <td><b>${b.nickname || b.id}</b></td>
-            <td>${Math.round(b.fill_percent)}%</td>
-            <td><i data-lucide="${prediction.trend === 'up' ? 'trending-up' : 'minus'}" style="width:14px; color:${prediction.trend === 'up' ? 'var(--accent-red)' : ''}"></i></td>
-            <td style="color:${isUrgent ? 'var(--accent-red)' : ''}; font-weight:${isUrgent ? '700' : 'normal'}">${prediction.label}</td>
-            <td>${getAssignedNames(b.id)}</td>
+            <td data-label="Bin Identifier">
+               <div style="font-weight:700; color:var(--text-main);">${b.nickname || b.id}</div>
+               <div style="font-size:10px; opacity:0.5;">ID: ${b.id}</div>
+            </td>
+            <td data-label="Current Load">
+               <div><div class="bin-outer" style="width:50px; height:6px; margin-bottom:4px;"><div class="bin-fill" style="height:100%; width:${pct}%; background:${s.fill};"></div></div>${pct}%</div>
+            </td>
+            <td data-label="Trend" style="text-align:center;">
+               <i data-lucide="${prediction.trend === 'up' ? 'trending-up' : 'minus'}" style="width:14px; color:${prediction.trend === 'up' ? 'var(--accent-red)' : 'var(--text-muted)'}"></i>
+            </td>
+            <td data-label="Predicted 100%" class="col-pred" style="color:${isUrgent ? 'var(--accent-red)' : 'var(--accent-green)'};">
+               ${prediction.label}
+            </td>
+            <td data-label="Assignment" style="font-size:11px; color:var(--text-muted);">
+               ${getAssignedNames(b.id) || '--'}
+            </td>
           </tr>
         `;
       }).join('');
@@ -1584,30 +2025,102 @@
     return assigned.map(u => u.username).join(', ');
   }
 
+  function switchFloor(floor) {
+    currentFloor = floor;
+    updateIndoorLayers();
+  }
+
+
   function initMap() {
-    if (map) return;
-    if (typeof L === 'undefined') { console.warn('[Map] Leaflet not loaded yet, skipping initMap.'); return; }
-    map = L.map('map').setView([systemSettings.depotLat, systemSettings.depotLng], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const lat = systemSettings.depotLat || 27.713384;
+    const lng = systemSettings.depotLng || 85.329393;
+
+    if (indoorMapMode) {
+      map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -4,
+        maxZoom: 4
+      });
+      updateIndoorLayers();
+    } else {
+      map = L.map('map').setView([lat, lng], 17);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+
+    // Interactive Placement / Calibration Listener
+    map.on('click', async (e) => {
+      if (!calibrationState.active || !calibrationState.binId) return;
+      
+      const id = calibrationState.binId;
+      const bin = binsData[id];
+      const { lat, lng } = e.latlng;
+      
+      let updatePayload = { 
+        id, 
+        nickname: bin.nickname, 
+        binHeight: bin.binHeight,
+        binType: bin.binType,
+        floor: bin.floor
+      };
+
+      if (indoorMapMode) {
+        // Simple X/Y capture
+        updatePayload.x = lng; // In CRS.Simple, lng maps to X
+        updatePayload.y = lat; // lat maps to Y
+      } else {
+        updatePayload.lat = lat;
+        updatePayload.lng = lng;
+      }
+
+      showToast("Updating coordinates...", "var(--accent-blue)");
+      try {
+        const res = await fetch('/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatePayload)
+        });
+        if (res.ok) {
+          showToast("Location Updated!", "var(--accent-green)");
+          fetchData(); // Refresh UI and Markers
+        }
+      } catch (err) {
+        showToast("Calibration Failed", "var(--accent-red)");
+      }
+      exitCalibrationMode();
+    });
+
+    markerGroup = L.layerGroup().addTo(map);
     
-    markerGroup = L.markerClusterGroup().addTo(map);
     const bins = Object.values(binsData);
     bins.forEach(b => {
+      // Filter for indoor mode
+      if (indoorMapMode) {
+        if (b.binType !== 'indoor' || b.floor !== currentFloor) return;
+      } else {
+        if (b.binType === 'indoor') return; // Don't show indoor schematic bins on GPS map
+      }
+
       const pct = Math.round(b.fill_percent) || 0;
       const s = getStatusStyle(pct, b.last_seen);
       const pred = calculateGrowthPredictor(b);
       const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
 
-      const marker = L.marker([b.lat, b.lng], {
+      const pos = indoorMapMode ? [b.y || 500, b.x || 500] : [b.lat || systemSettings.depotLat, b.lng || systemSettings.depotLng];
+      const size = indoorMapMode ? 36 : 24;
+
+      const marker = L.marker(pos, {
         icon: L.divIcon({
           className: 'custom-div-icon',
           html: `
-            <div class="marker-pin ${s.badge}" style="background-color: ${s.color}; border:4px solid var(--card-bg); width:24px; height:24px; border-radius:50%; box-shadow:0 0 10px rgba(0,0,0,0.2); position:relative;">
-              ${isPredictive ? '<div style="position:absolute; top:-4px; left:-4px; right:-4px; bottom:-4px; border:2px solid var(--accent-amber); border-radius:50%; animation: pulse-amber 1.5s ease-out infinite;"></div>' : ''}
+            <div class="marker-pin ${s.badge}" style="background-color: ${s.color}; border:4px solid white; width:${size}px; height:${size}px; border-radius:50%; box-shadow:0 0 15px rgba(0,0,0,0.4); position:relative; display:flex; align-items:center; justify-content:center;">
+              <div style="color:white; font-size:${size/4}px; font-weight:900;">${pct}</div>
+              ${isPredictive ? `<div style="position:absolute; top:-6px; left:-6px; right:-6px; bottom:-6px; border:2px solid var(--accent-amber); border-radius:50%; animation: pulse-amber 1.5s ease-out infinite;"></div>` : ''}
             </div>
           `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2]
         })
       });
 
@@ -1617,7 +2130,10 @@
           <div style="font-size:24px; font-weight:800; color:${s.color};">${pct}% Full</div>
           ${isPredictive ? `<div style="font-size:11px; color:var(--accent-amber); font-weight:700; margin-top:4px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
           <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
-          <button class="test-btn" style="width:100%; margin-top:10px; font-size:11px;" onclick="openDetail('${b.id}')">View Full Analytics</button>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+            <button class="test-btn" style="width:100%; font-size:10px; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="openDetail('${b.id}')"><i data-lucide="bar-chart-2" style="width:12px;"></i> Analytics</button>
+            <button class="test-btn" style="width:100%; font-size:10px; background:var(--accent-amber); display:flex; align-items:center; justify-content:center; gap:4px;" onclick="enterCalibrationMode('${b.id}')"><i data-lucide="map-pin" style="width:12px;"></i> Pin on Map</button>
+          </div>
         </div>
       `);
       
@@ -1631,7 +2147,11 @@
   }
 
   function updateDepotPointer() {
-    if (!map) return;
+    if (!map || indoorMapMode) {
+      if (depotMarker) map.removeLayer(depotMarker);
+      depotMarker = null;
+      return;
+    }
     const pos = [systemSettings.depotLat, systemSettings.depotLng];
     
     if (depotMarker) {
@@ -1651,11 +2171,11 @@
 
   function getStatusStyle(pct, lastSeen) {
     const diff = (new Date() - new Date(lastSeen)) / 1000 / 60;
-    if (diff > 10) return { fill: '#94A3B8', text: '#475569', badge: 'offline-badge', label: 'Offline', icon: 'gray' };
+    if (diff > 10) return { fill: '#94A3B8', color: '#94A3B8', text: '#475569', badge: 'offline-badge', label: 'Offline', icon: 'gray' };
     
-    if (pct >= systemSettings.alertThreshold) return { fill: '#EF4444', text: '#991B1B', badge: 'danger', label: 'Full', icon: 'red' };
-    if (pct >= 60) return { fill: '#FBBF24', text: '#92400E', badge: 'warn', label: 'Warning', icon: 'amber' };
-    return { fill: '#4ADE80', text: '#166534', badge: 'ok', label: 'Stable', icon: 'green' };
+    if (pct >= (systemSettings.alertThreshold || 80)) return { fill: '#EF4444', color: '#EF4444', text: '#991B1B', badge: 'danger', label: 'Full', icon: 'red' };
+    if (pct >= 60) return { fill: '#FBBF24', color: '#FBBF24', text: '#92400E', badge: 'warn', label: 'Warning', icon: 'amber' };
+    return { fill: '#10B981', color: '#10B981', text: '#065F46', badge: 'ok', label: 'Stable', icon: 'green' };
   }
 
   function renderBin(id, data) {
@@ -1719,10 +2239,18 @@
 
       const container = document.getElementById('bins-container');
       
-      binIds.forEach(id => {
-        const bin = bins[id];
-        const pct = Math.round(bin.fill_percent);
-        const s = getStatusStyle(pct, bin.last_seen);
+      for (const id in binsData) {
+        const b = binsData[id];
+
+        // Global Deployment Lock for Stats
+        let isVisible = true;
+        if (systemSettings.systemMode === 'municipality' && b.binType !== 'street') isVisible = false;
+        if (systemSettings.systemMode === 'campus' && b.binType !== 'indoor') isVisible = false;
+
+        if (!isVisible) continue;
+
+        const pct = Math.round(b.fill_percent);
+        const s = getStatusStyle(pct, b.last_seen);
         
         if (s.label !== 'Offline') {
           totalFill += pct;
@@ -1732,17 +2260,17 @@
 
         const lastPct = lastPctMap[id] !== undefined ? lastPctMap[id] : -1;
         if (lastPct !== -1 && pct >= systemSettings.alertThreshold && lastPct < systemSettings.alertThreshold) {
-          addAlert(`CRITICAL: ${bin.nickname || id} reached ${pct}%!`, '#EF4444');
+          addAlert(`CRITICAL: ${b.nickname || id} reached ${pct}%!`, '#EF4444');
           playAlertSound();
-          showNativeNotification("CRITICAL ALERT", `${bin.nickname || id} is ${pct}% FULL!`);
+          showNativeNotification("CRITICAL ALERT", `${b.nickname || id} is ${pct}% FULL!`);
         }
         lastPctMap[id] = pct;
 
         const existing = document.getElementById(`bin-${id}`);
         if (!existing) {
-          container.insertAdjacentHTML('beforeend', renderBin(id, bin));
-          updateChart(id, bin.history);
-          updateMapMarker(id, bin);
+          container.insertAdjacentHTML('beforeend', renderBin(id, b));
+          updateChart(id, b.history);
+          updateMapMarker(id, b);
         } else if (dataChanged) { // Only update UI if something actually changed
           existing.className = `bin-card ${s.label === 'Offline' ? 'offline' : ''}`;
           
@@ -1758,20 +2286,21 @@
              pctText.style.color = s.text;
           }
           
-          existing.querySelector('.bin-sub').textContent = `${bin.distance} cm • ${s.label}`;
+          existing.querySelector('.bin-sub').textContent = `${b.distance} cm • ${s.label}`;
           existing.querySelector('.badge').className = `badge ${s.badge}`;
           existing.querySelector('.badge').textContent = s.label === 'Offline' ? 'Unreachable' : 'Live';
-          existing.querySelector('.bin-name').textContent = bin.nickname || id;
+          existing.querySelector('.bin-name').textContent = b.nickname || id;
 
-          updateChart(id, bin.history);
-          updateMapMarker(id, bin);
+          updateChart(id, b.history);
+          updateMapMarker(id, b);
         }
-      });
+      }
 
       if (dataChanged) {
         if (currentView === 'map') {
             updateMapSidebar();
             refreshMarkers();
+            if (isHeatmapActive) updateHeatmap();
         }
         updateAnalytics();
         updateFleetMarkers();
@@ -1799,69 +2328,59 @@
 
   function updateMapMarker(id, bin) {
     if (!map) return;
-    const lat = bin.lat || systemSettings.depotLat;
-    const lng = bin.lng || systemSettings.depotLng;
+    
+    // Mode Filter
+    if (indoorMapMode) {
+      if (bin.binType !== 'indoor' || bin.floor !== currentFloor) {
+        if (markers[id]) markerGroup.removeLayer(markers[id]);
+        return;
+      }
+    } else {
+      if (bin.binType === 'indoor') {
+        if (markers[id]) markerGroup.removeLayer(markers[id]);
+        return;
+      }
+    }
+
+    const pos = indoorMapMode ? [bin.y || 500, bin.x || 500] : [bin.lat || systemSettings.depotLat, bin.lng || systemSettings.depotLng];
     const pct = Math.round(bin.fill_percent);
     const s = getStatusStyle(pct, bin.last_seen);
     const pred = calculateGrowthPredictor(bin);
     const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
 
-    // OPTIMIZATION: Track state to prevent popup flickering on every heartbeat
-    const statusState = `${s.icon}-${isPredictive}-${pct}`; // Unique key for status visuals
+    const size = indoorMapMode ? 36 : 24;
+    const statusState = `${s.icon}-${isPredictive}-${pct}-${bin.binType}-${bin.floor}-${size}`; 
     const marker = markers[id];
 
     if (marker) {
-      marker.setLatLng([lat, lng]);
-      
-      // Update icon ONLY if the visual category or predictive pulsing changed
-      // This prevents the popup from flickering every 2 seconds
+      marker.setLatLng(pos);
       if (marker.lastStatusState !== statusState) {
         const markerHtml = `
-          <div style="background:${s.fill}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); position:relative;">
-            <div style="transform:rotate(45deg); color:white; font-size:10px; font-weight:800;">${pct}</div>
-            ${isPredictive ? '<div style="position:absolute; top:-4px; left:-4px; right:-4px; bottom:-4px; border:2px solid var(--accent-amber); border-radius:50% 50% 50% 0; animation: pulse-amber 1.5s ease-out infinite;"></div>' : ''}
+          <div class="marker-pin ${s.badge}" style="background-color: ${s.color}; border:4px solid white; width:${size}px; height:${size}px; border-radius:50%; box-shadow:0 0 15px rgba(0,0,0,0.4); position:relative; display:flex; align-items:center; justify-content:center;">
+            <div style="color:white; font-size:${size/4}px; font-weight:900;">${pct}</div>
+            ${isPredictive ? `<div style="position:absolute; top:-6px; left:-6px; right:-6px; bottom:-6px; border:2px solid var(--accent-amber); border-radius:50%; animation: pulse-amber 1.5s ease-out infinite;"></div>` : ''}
           </div>
         `;
-        marker.setIcon(L.divIcon({ className: '', html: markerHtml, iconSize: [30, 30], iconAnchor: [15, 30] }));
+        marker.setIcon(L.divIcon({ className: '', html: markerHtml, iconSize: [size, size], iconAnchor: [size/2, size/2] }));
         marker.lastStatusState = statusState;
       }
-    } else {
-      const markerHtml = `
-          <div style="background:${s.fill}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); position:relative;">
-            <div style="transform:rotate(45deg); color:white; font-size:10px; font-weight:800;">${pct}</div>
-            ${isPredictive ? '<div style="position:absolute; top:-4px; left:-4px; right:-4px; bottom:-4px; border:2px solid var(--accent-amber); border-radius:50% 50% 50% 0; animation: pulse-amber 1.5s ease-out infinite;"></div>' : ''}
-          </div>
-      `;
-      markers[id] = L.marker([lat, lng], {
-        icon: L.divIcon({ className: '', html: markerHtml, iconSize: [30, 30], iconAnchor: [15, 30] })
-      }).bindPopup(`
-        <div style="font-family:'DM Sans'; padding:4px;">
-          <h3 style="font-size:16px; margin-bottom:4px;">${bin.nickname || id}</h3>
-          <div style="font-size:24px; font-weight:800; color:${s.fill};">${pct}% Full</div>
-          ${isPredictive ? `<div style="font-size:11px; color:var(--accent-amber); font-weight:700; margin-top:4px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Last seen: ${bin.last_updated}</div>
-          <button class="test-btn" style="width:100%; margin-top:10px; font-size:11px;" onclick="openDetail('${id}')">View Full Analytics</button>
-        </div>
-      `);
-      markers[id].lastStatusState = statusState; 
-    }
+      // Correct visibility logic (Sync with filter)
+      let targetBinIds = null;
+      if (currentUser && currentUser.role === 'driver') {
+        targetBinIds = currentUser.assignedBins || [];
+      } else if (mapDriverFilter !== 'all') {
+        const targetDriver = teamData.find(u => u._id === mapDriverFilter);
+        targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
+      }
+      
+      const isAdminFleet = currentUser && currentUser.role === 'admin' && mapDriverFilter === 'all';
+      const isVisible = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
 
-    // Correct visibility logic (Sync with filter)
-    let targetBinIds = null;
-    if (currentUser && currentUser.role === 'driver') {
-      targetBinIds = currentUser.assignedBins || [];
-    } else if (mapDriverFilter !== 'all') {
-      const targetDriver = teamData.find(u => u._id === mapDriverFilter);
-      targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
-    }
-    
-    const isAdminFleet = currentUser && currentUser.role === 'admin' && mapDriverFilter === 'all';
-    const isVisible = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
-
-    if (isVisible) {
-      if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
-    } else {
-      if (markerGroup.hasLayer(markers[id])) markerGroup.removeLayer(markers[id]);
+      if (isVisible) {
+        if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
+      } else {
+        if (markerGroup.hasLayer(markers[id])) markerGroup.removeLayer(markers[id]);
+      }
     }
   }
 
@@ -1871,9 +2390,18 @@
     
     const fullBins = Object.values(binsData)
       .filter(b => {
+        const id = b.id;
+        // 1. Must be visible based on active search/driver/hub filters
+        const isVisible = markerGroup && markers[id] && markerGroup.hasLayer(markers[id]);
+        if (!isVisible) return false;
+
+        // 2. Must be a street bin (GPS routing only)
+        if (b.binType === 'indoor') return false;
+
+        // 3. Must require collection logic
         const pct = Math.round(b.fill_percent);
         const pred = calculateGrowthPredictor(b);
-        return pct >= systemSettings.alertThreshold || (pred.trend === 'up' && pred.hours > 0 && pred.hours < 12);
+        return pct >= (systemSettings.alertThreshold || 80) || (pred.trend === 'up' && pred.hours > 0 && pred.hours < 12);
       })
       .sort((a, b) => {
         // Nearest neighbor distance from depot (simplified)
@@ -1901,14 +2429,48 @@
       document.getElementById('route-next').textContent = fullBins.length > 1 ? `Then: ${fullBins[1].nickname || fullBins[1].id}` : "Final stop: Depot";
     }
 
-    routingControl = L.Routing.control({
-      waypoints,
-      routeWhileDragging: false,
-      addWaypoints: false,
-      lineOptions: { styles: [{ color: 'var(--accent-green)', weight: 6, opacity: 0.8 }] },
-      createMarker: () => null, // Use existing markers
-      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' })
-    }).addTo(map);
+    if (indoorMapMode) {
+      // --- INDOOR ROUTING (Simple Polyline) ---
+      const coords = waypoints.map(w => [w.lat, w.lng]);
+      routingControl = L.polyline(coords, { color: 'var(--accent-green)', weight: 4, dashArray: '10, 10' }).addTo(map);
+      
+      // Calculate schematic "distance" (simple Euclidean sum)
+      let totalDist = 0;
+      for (let i = 1; i < coords.length; i++) {
+        totalDist += Math.sqrt(Math.pow(coords[i][0] - coords[i-1][0], 2) + Math.pow(coords[i][1] - coords[i-1][1], 2));
+      }
+      // Map 1000 units to ~0.5km for scale
+      updateSustainability((totalDist / 2000));
+      
+      // Build manual instructions for sidebar
+      const panel = document.getElementById('routing-panel');
+      panel.innerHTML = `
+        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; border:1px solid var(--card-border);">
+          <h4 style="font-size:14px; margin-bottom:10px;">Indoor Collection Path (${currentFloor} Floor)</h4>
+          <ol style="margin:0; padding-left:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+            <li>Start at Hub Entrance</li>
+            ${fullBins.map(b => `<li>Collect <b>${b.nickname || b.id}</b></li>`).join('')}
+            <li>Return to Equipment Station</li>
+          </ol>
+          <button class="test-btn" style="width:100%; margin-top:15px;" onclick="clearRoute()">Route Completed</button>
+        </div>
+      `;
+    } else {
+      // --- OSRM CITY ROUTING ---
+      routingControl = L.Routing.control({
+        waypoints,
+        routeWhileDragging: false,
+        addWaypoints: false,
+        lineOptions: { styles: [{ color: 'var(--accent-green)', weight: 6, opacity: 0.8 }] },
+        createMarker: () => null, 
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' })
+      }).on('routesfound', function(e) {
+        const routes = e.routes;
+        const summary = routes[0].summary;
+        const distanceKm = summary.totalDistance / 1000;
+        updateSustainability(distanceKm);
+      }).addTo(map);
+    }
 
     // Hide normal list, show routing panel
     document.getElementById('map-sidebar-list').style.display = 'none';
@@ -1931,7 +2493,12 @@
   }
 
   function clearRoute() {
-    if (routingControl) map.removeControl(routingControl);
+    if (!routingControl) return;
+    if (routingControl.remove) {
+      routingControl.remove(); // Polyline removal
+    } else if (map.removeControl) {
+      map.removeControl(routingControl); // OSRM removal
+    }
     routingControl = null;
     document.getElementById('routing-panel').style.display = 'none';
     document.getElementById('map-sidebar-list').style.display = 'flex';
@@ -1942,22 +2509,40 @@
   let activeBinId = null;
   function openRename(id) {
     activeBinId = id;
-    document.getElementById('rename-input').value = binsData[id].nickname || id;
-    document.getElementById('height-input').value = binsData[id].binHeight || 20;
+    const b = binsData[id];
+    document.getElementById('rename-input').value = b.nickname || id;
+    document.getElementById('height-input').value = b.binHeight || 20;
+    document.getElementById('type-input').value = b.binType || 'street';
+    document.getElementById('floor-input').value = b.floor || 'Ground';
+    document.getElementById('pos-x').value = b.x || 0;
+    document.getElementById('pos-y').value = b.y || 0;
+    
+    // Show/Hide X/Y inputs based on type
+    const togglePos = () => {
+      document.getElementById('schematic-pos-group').style.display = (document.getElementById('type-input').value === 'indoor') ? 'grid' : 'none';
+    };
+    document.getElementById('type-input').onchange = togglePos;
+    togglePos();
+
     document.getElementById('rename-modal').style.display = 'flex';
   }
   function closeModal() { document.getElementById('rename-modal').style.display = 'none'; }
   async function saveRename() {
     const nickname = document.getElementById('rename-input').value;
     const binHeight = parseInt(document.getElementById('height-input').value);
+    const binType = document.getElementById('type-input').value;
+    const floor = document.getElementById('floor-input').value;
+    const x = parseFloat(document.getElementById('pos-x').value) || 0;
+    const y = parseFloat(document.getElementById('pos-y').value) || 0;
+
     const res = await fetch('/rename', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: activeBinId, nickname, binHeight })
+      body: JSON.stringify({ id: activeBinId, nickname, binHeight, binType, floor, x, y })
     });
     if (res.ok) {
-      showToast("Settings Applied", 'var(--accent-green)');
-      addAlert(`System: Configured ${activeBinId}`, 'var(--accent-green)');
+      showToast("Config Applied", 'var(--accent-green)');
+      addAlert(`System: Configured ${nickname || activeBinId}`, 'var(--accent-green)');
       fetchData();
     }
     closeModal();

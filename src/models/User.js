@@ -4,14 +4,22 @@ const bcrypt = require("bcryptjs");
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'driver', 'analytics'], default: 'admin' },
+  role: { type: String, enum: ['admin', 'driver', 'janitor', 'analytics'], default: 'admin' },
   assignedBins: [{ type: String }],
   isOnline: { type: Boolean, default: false },
   lastLocation: {
     lat: { type: Number, default: null },
     lng: { type: Number, default: null }
   },
-  lastUpdate: { type: Date, default: null }
+  lastUpdate: { type: Date, default: null },
+  pushSubscriptions: [{
+    endpoint: String,
+    expirationTime: Number,
+    keys: {
+      p256dh: String,
+      auth: String
+    }
+  }]
 });
 
 userSchema.pre('save', async function() {
