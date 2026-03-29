@@ -13,6 +13,9 @@ const helmet = require("helmet");
 
 const app = express();
 
+// Trust reverse proxy (Required for secure cookies on Render/Heroku)
+app.set('trust proxy', 1);
+
 
 // Security Headers - Relaxed for compatibility with inline handlers and CDN resources
 app.use(helmet({
