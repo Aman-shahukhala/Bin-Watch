@@ -1465,14 +1465,19 @@
         </tr>
       `).join('');
 
-      // Update Map Filter Dropdown
+      // Update Map Filter Dropdown — role list depends on deployment mode
       const select = document.getElementById('map-driver-select');
       const currentVal = mapDriverFilter; // Preserve selection
-      const drivers = teamData.filter(u => u.role === 'driver');
-      
+      const isCampusMode = systemSettings.systemMode === 'campus';
+      // Campus = show janitors & non-superuser admins; Municipality = show drivers
+      const staffList = isCampusMode
+        ? teamData.filter(u => u.role === 'janitor' || (u.role === 'admin' && u.username !== 'admin'))
+        : teamData.filter(u => u.role === 'driver');
+      const roleLabel = isCampusMode ? 'Janitor' : 'Driver';
+
       select.innerHTML = `
         <option value="all">Full Fleet (Admin Overview)</option>
-        ${drivers.map(d => `<option value="${d._id}">Assignee: ${d.username}</option>`).join('')}
+        ${staffList.map(u => `<option value="${u._id}">${roleLabel}: ${u.username}</option>`).join('')}
       `;
       select.value = currentVal;
 
@@ -1638,6 +1643,7 @@
     if (!silent && (hub === 'street' || hub === 'campus')) {
       systemSettings.systemMode = hub === 'street' ? 'municipality' : 'campus';
       saveSettings(); // Persist selection
+      fetchTeam(); // Update fleet dropdown immediately 
       toggleMapDeploymentMode(systemSettings.systemMode);
     } else if (!silent && hub === 'all' && systemSettings.systemMode === 'campus') {
       // In ALL view with campus artifacts, ensure we don't switch away but show all markers
@@ -1733,7 +1739,7 @@
       try {
         const pct = Math.round(b.fill_percent) || 0;
         const pred = calculateGrowthPredictor(b) || { trend: 'none', hours: 0 };
-        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
+        const isPredictive = pct < (systemSettings.alertThreshold || 80) && pred.trend === 'up' && pred.hours > 0 && pred.hours < (systemSettings.systemMode === 'campus' ? 1 : 12);
         const color = pct > 80 ? 'var(--accent-red)' : (pct > 50 ? 'var(--accent-amber)' : 'var(--accent-green)');
         
         return `
@@ -1906,7 +1912,8 @@
     if (tbody && currentView === 'analytics') {
       tbody.innerHTML = bins.map(b => {
         const prediction = calculateGrowthPredictor(b);
-        const isUrgent = prediction.hours < 12 && prediction.hours > 0;
+        const urgencyThreshold = systemSettings.systemMode === 'campus' ? 1 : 12;
+        const isUrgent = prediction.hours < urgencyThreshold && prediction.hours > 0;
         const pct = Math.round(b.fill_percent);
         const s = getStatusStyle(pct, b.last_seen);
 
@@ -2105,7 +2112,8 @@
       const pct = Math.round(b.fill_percent) || 0;
       const s = getStatusStyle(pct, b.last_seen);
       const pred = calculateGrowthPredictor(b);
-      const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
+      const urgencyThreshold = systemSettings.systemMode === 'campus' ? 1 : 12;
+      const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < urgencyThreshold;
 
       const pos = indoorMapMode ? [b.y || 500, b.x || 500] : [b.lat || systemSettings.depotLat, b.lng || systemSettings.depotLng];
       const size = indoorMapMode ? 36 : 24;
@@ -2346,7 +2354,8 @@
     const pct = Math.round(bin.fill_percent);
     const s = getStatusStyle(pct, bin.last_seen);
     const pred = calculateGrowthPredictor(bin);
-    const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
+    const urgencyThreshold = systemSettings.systemMode === 'campus' ? 1 : 12;
+    const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < urgencyThreshold;
 
     const size = indoorMapMode ? 36 : 24;
     const statusState = `${s.icon}-${isPredictive}-${pct}-${bin.binType}-${bin.floor}-${size}`; 
