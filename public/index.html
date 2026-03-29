@@ -2395,13 +2395,16 @@
         const isVisible = markerGroup && markers[id] && markerGroup.hasLayer(markers[id]);
         if (!isVisible) return false;
 
-        // 2. Must be a street bin (GPS routing only)
-        if (b.binType === 'indoor') return false;
+        // 2. Mode gate: only include the right bin type for the current map mode
+        if (indoorMapMode && b.binType !== 'indoor') return false;
+        if (!indoorMapMode && b.binType === 'indoor') return false;
 
         // 3. Must require collection logic
+        // Campus (college) mode uses a tighter TTF window of < 1 hour
         const pct = Math.round(b.fill_percent);
         const pred = calculateGrowthPredictor(b);
-        return pct >= (systemSettings.alertThreshold || 80) || (pred.trend === 'up' && pred.hours > 0 && pred.hours < 12);
+        const ttfThreshold = indoorMapMode ? 1 : 12;
+        return pct >= (systemSettings.alertThreshold || 80) || (pred.trend === 'up' && pred.hours > 0 && pred.hours < ttfThreshold);
       })
       .sort((a, b) => {
         // Nearest neighbor distance from depot (simplified)
