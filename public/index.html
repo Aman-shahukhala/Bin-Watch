@@ -1341,9 +1341,11 @@
       targetBinIds = targetDriver?.assignedBins || [];
     }
 
+    const isAdminFleet = currentUser.role === 'admin' && mapDriverFilter === 'all';
+    
     const filtered = Object.values(binsData).filter(b => {
       const matchesSearch = (b.nickname || '').toLowerCase().includes(search) || b.id.toLowerCase().includes(search);
-      const matchesDriver = (currentUser.role === 'admin' && mapDriverFilter === 'all') ? true : (targetBinIds ? targetBinIds.includes(b.id) : true);
+      const matchesDriver = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(b.id) : true);
       return matchesSearch && matchesDriver;
     });
 
@@ -1385,8 +1387,10 @@
       targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
     }
 
+    const isAdminFleet = currentUser.role === 'admin' && mapDriverFilter === 'all';
+
     Object.keys(markers).forEach(id => {
-      const isVisible = targetBinIds ? targetBinIds.includes(id) : true;
+      const isVisible = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
       if (isVisible) {
          if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
       } else {
@@ -1788,23 +1792,50 @@
     const lng = bin.lng || systemSettings.depotLng;
     const pct = Math.round(bin.fill_percent);
     const s = getStatusStyle(pct, bin.last_seen);
+    const pred = calculateGrowthPredictor(bin);
+    const isPredictive = pct < systemSettings.alertThreshold && pred.trend === 'up' && pred.hours > 0 && pred.hours < 12;
 
-    const markerHtml = `
-      <div style="background:${s.fill}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3)">
-        <div style="transform:rotate(45deg); color:white; font-size:10px; font-weight:800;">${pct}</div>
-      </div>
-    `;
+    // OPTIMIZATION: Track state to prevent popup flickering on every heartbeat
+    const statusState = `${s.icon}-${isPredictive}-${pct}`; // Unique key for status visuals
+    const marker = markers[id];
 
-    if (markers[id]) {
-      markers[id].setLatLng([lat, lng]);
-      markers[id].setIcon(L.divIcon({ className: '', html: markerHtml, iconSize: [30, 30], iconAnchor: [15, 30] }));
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+      
+      // Update icon ONLY if the visual category or predictive pulsing changed
+      // This prevents the popup from flickering every 2 seconds
+      if (marker.lastStatusState !== statusState) {
+        const markerHtml = `
+          <div style="background:${s.fill}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); position:relative;">
+            <div style="transform:rotate(45deg); color:white; font-size:10px; font-weight:800;">${pct}</div>
+            ${isPredictive ? '<div style="position:absolute; top:-4px; left:-4px; right:-4px; bottom:-4px; border:2px solid var(--accent-amber); border-radius:50% 50% 50% 0; animation: pulse-amber 1.5s ease-out infinite;"></div>' : ''}
+          </div>
+        `;
+        marker.setIcon(L.divIcon({ className: '', html: markerHtml, iconSize: [30, 30], iconAnchor: [15, 30] }));
+        marker.lastStatusState = statusState;
+      }
     } else {
+      const markerHtml = `
+          <div style="background:${s.fill}; width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); position:relative;">
+            <div style="transform:rotate(45deg); color:white; font-size:10px; font-weight:800;">${pct}</div>
+            ${isPredictive ? '<div style="position:absolute; top:-4px; left:-4px; right:-4px; bottom:-4px; border:2px solid var(--accent-amber); border-radius:50% 50% 50% 0; animation: pulse-amber 1.5s ease-out infinite;"></div>' : ''}
+          </div>
+      `;
       markers[id] = L.marker([lat, lng], {
         icon: L.divIcon({ className: '', html: markerHtml, iconSize: [30, 30], iconAnchor: [15, 30] })
-      }).bindPopup(`<b>${bin.nickname || id}</b><br>Fill: ${pct}%<br>Status: ${s.label}`);
+      }).bindPopup(`
+        <div style="font-family:'DM Sans'; padding:4px;">
+          <h3 style="font-size:16px; margin-bottom:4px;">${bin.nickname || id}</h3>
+          <div style="font-size:24px; font-weight:800; color:${s.fill};">${pct}% Full</div>
+          ${isPredictive ? `<div style="font-size:11px; color:var(--accent-amber); font-weight:700; margin-top:4px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Last seen: ${bin.last_updated}</div>
+          <button class="test-btn" style="width:100%; margin-top:10px; font-size:11px;" onclick="openDetail('${id}')">View Full Analytics</button>
+        </div>
+      `);
+      markers[id].lastStatusState = statusState; 
     }
 
-    // Always ensure visibility logic is handled, even for existing markers
+    // Correct visibility logic (Sync with filter)
     let targetBinIds = null;
     if (currentUser && currentUser.role === 'driver') {
       targetBinIds = currentUser.assignedBins || [];
@@ -1813,7 +1844,9 @@
       targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
     }
     
-    const isVisible = targetBinIds ? targetBinIds.includes(id) : true;
+    const isAdminFleet = currentUser && currentUser.role === 'admin' && mapDriverFilter === 'all';
+    const isVisible = isAdminFleet ? true : (targetBinIds ? targetBinIds.includes(id) : true);
+
     if (isVisible) {
       if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
     } else {
