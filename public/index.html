@@ -643,11 +643,16 @@
 
   <!-- ANALYTICS VIEW -->
   <div id="view-analytics" class="view">
-    <div class="summary-row" id="global-stats-row">
+    <div class="summary-row" id="global-stats-row" style="grid-template-columns: repeat(4, 1fr);">
       <div class="stat-card">
-        <div class="stat-label">Efficiency Index</div>
+        <div class="stat-label">Efficiency Grade</div>
+        <div id="global-efficiency-grade" class="stat-val" style="color:var(--nav-inactive);">--</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Fleet Deployment Grade</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg. Collection Fill</div>
         <div id="global-efficiency" class="stat-val">--%</div>
-        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Avg. Fill at Pickup</div>
+        <div style="font-size:11px; opacity:0.6; margin-top:4px;">Fill level when picked up</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Total Waste Processed</div>
@@ -661,8 +666,16 @@
       </div>
     </div>
 
-    <div class="detail-card">
-      <h3 style="font-family:'Nunito'; margin-bottom:20px;">Fleet Health & Growth Forecast</h3>
+    <div class="detail-grid" style="margin-bottom: 32px;">
+      <div class="detail-card">
+        <h3 style="font-family:'Nunito'; margin-bottom:20px;">Strategy Distribution</h3>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Frequency of pickups at specific fill levels. Goal: Shift to the right (80-100%).</p>
+        <div style="height:250px;">
+          <canvas id="distribution-chart"></canvas>
+        </div>
+      </div>
+      <div class="detail-card">
+        <h3 style="font-family:'Nunito'; margin-bottom:20px;">Fleet Health & Growth Forecast</h3>
       <div class="history-scroll-wrap">
         <table class="history-table">
           <thead>
@@ -895,8 +908,13 @@
       try {
         const res = await fetch('/auth/me');
         if (res.ok) {
-          currentUser = await res.json();
+            currentUser = await res.json();
           updateUIVisibility();
+          // Force immediate map refresh once role is confirmed
+          if (map) {
+            updateMapSidebar();
+            refreshMarkers();
+          }
         }
       } catch (err) { console.error("Role Check Error:", err); }
     }
@@ -1325,7 +1343,7 @@
 
     const filtered = Object.values(binsData).filter(b => {
       const matchesSearch = (b.nickname || '').toLowerCase().includes(search) || b.id.toLowerCase().includes(search);
-      const matchesDriver = targetBinIds ? targetBinIds.includes(b.id) : true;
+      const matchesDriver = (currentUser.role === 'admin' && mapDriverFilter === 'all') ? true : (targetBinIds ? targetBinIds.includes(b.id) : true);
       return matchesSearch && matchesDriver;
     });
 
@@ -1357,21 +1375,23 @@
   }
   
   function refreshMarkers() {
-    if (!currentUser || !map || !markerGroup) return; // Guard against uninitialized state
+    if (!currentUser || !map || !markerGroup) return; 
     
-    // Determine which markers should be visible
     let targetBinIds = null;
     if (currentUser.role === 'driver') {
       targetBinIds = currentUser.assignedBins || [];
     } else if (mapDriverFilter !== 'all') {
       const targetDriver = teamData.find(u => u._id === mapDriverFilter);
-      targetBinIds = targetDriver?.assignedBins || [];
+      targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
     }
 
     Object.keys(markers).forEach(id => {
       const isVisible = targetBinIds ? targetBinIds.includes(id) : true;
-      if (isVisible) markerGroup.addLayer(markers[id]);
-      else markerGroup.removeLayer(markers[id]);
+      if (isVisible) {
+         if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
+      } else {
+         if (markerGroup.hasLayer(markers[id])) markerGroup.removeLayer(markers[id]);
+      }
     });
   }
 
@@ -1388,37 +1408,59 @@
     const bins = Object.values(binsData);
     if (bins.length === 0) return;
 
-    // 1. Efficiency Index (Detection of drops > 50%)
-    let collectionEvents = 0;
-    let totalFillAtCollection = 0;
+    // 1. Efficiency Intelligence (Collection Events tracking)
+    let collectionFillValues = [];
     
     bins.forEach(b => {
-      // OPTIMIZATION: Only scan last 20 points for live efficiency calculation
-      const history = (b.history || []).slice(-20);
+      const history = (b.history || []).slice(-200);
       for (let i = 1; i < history.length; i++) {
-        if (history[i-1].fill - history[i].fill > 50) {
-          collectionEvents++;
-          totalFillAtCollection += history[i-1].fill;
+        const drop = history[i-1].fill - history[i].fill;
+        // Detection threshold: > 30% drop AND the new level is < 20%
+        if (drop > 30 && history[i].fill < 20) {
+          collectionFillValues.push(history[i-1].fill);
         }
       }
     });
 
-    const efficiency = collectionEvents > 0 ? Math.round(totalFillAtCollection / collectionEvents) : 0;
+    const avgCollectionFill = collectionFillValues.length > 0 
+      ? Math.round(collectionFillValues.reduce((a,b) => a+b, 0) / collectionFillValues.length) 
+      : 0;
+
+    // 2. Grade Calculation
+    let grade = "--";
+    let gradeColor = "var(--nav-inactive)";
+    if (collectionFillValues.length > 0) {
+      if (avgCollectionFill >= 85) { grade = "A"; gradeColor = "var(--accent-green)"; }
+      else if (avgCollectionFill >= 70) { grade = "B"; gradeColor = "var(--accent-amber)"; }
+      else if (avgCollectionFill >= 50) { grade = "C"; gradeColor = "var(--accent-blue)"; }
+      else { grade = "D"; gradeColor = "var(--accent-red)"; }
+    }
+
+    const elGrade = document.getElementById('global-efficiency-grade');
+    if (elGrade.textContent !== grade) {
+      elGrade.textContent = grade;
+      elGrade.style.color = gradeColor;
+    }
+
     const elEff = document.getElementById('global-efficiency');
-    const effText = efficiency > 0 ? `${efficiency}%` : "No data";
+    const effText = avgCollectionFill > 0 ? `${avgCollectionFill}%` : "No data";
     if (elEff.textContent !== effText) elEff.textContent = effText;
     
-    // 2. Global Totals
+    // Distribution Chart Update
+    if (currentView === 'analytics') {
+      renderDistributionChart(collectionFillValues);
+    }
+
+    // 3. Global Totals
     const elActive = document.getElementById('global-active-bins');
     if (elActive.textContent !== String(bins.length)) elActive.textContent = bins.length;
     
     const elWaste = document.getElementById('global-total-waste');
-    const wasteText = (collectionEvents * 20).toLocaleString() + " L";
+    const wasteText = (collectionFillValues.length * 20).toLocaleString() + " L";
     if (elWaste.textContent !== wasteText) elWaste.textContent = wasteText;
 
-    // 3. Growth Predictor & Table
+    // 4. Growth Predictor & Table
     const tbody = document.getElementById('analytics-table-body');
-    // Only rebuild table if view is active to save CPU
     if (currentView === 'analytics') {
       tbody.innerHTML = bins.map(b => {
         const prediction = calculateGrowthPredictor(b);
@@ -1433,7 +1475,56 @@
           </tr>
         `;
       }).join('');
+      if (window.lucide) lucide.createIcons();
     }
+  }
+
+  let distChart = null;
+  function renderDistributionChart(values) {
+    const ctx = document.getElementById('distribution-chart');
+    if (!ctx) return;
+
+    // Bin values into buckets: 0-25, 25-50, 50-75, 75-100
+    const buckets = [0, 0, 0, 0];
+    values.forEach(v => {
+      if (v < 25) buckets[0]++;
+      else if (v < 50) buckets[1]++;
+      else if (v < 75) buckets[2]++;
+      else buckets[3]++;
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    const textColor = isDark ? '#94A3B8' : '#64748B';
+
+    if (distChart) {
+      distChart.data.datasets[0].data = buckets;
+      distChart.update();
+      return;
+    }
+
+    distChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['0-25%', '25-50%', '50-75%', '75-100%'],
+        datasets: [{
+          label: 'Collection Events',
+          data: buckets,
+          backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'],
+          borderRadius: 8,
+          barPercentage: 0.6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: textColor } },
+          y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, precision: 0 } }
+        }
+      }
+    });
   }
 
   function calculateGrowthPredictor(bin) {
@@ -1663,7 +1754,10 @@
       });
 
       if (dataChanged) {
-        if (currentView === 'map') updateMapSidebar();
+        if (currentView === 'map') {
+            updateMapSidebar();
+            refreshMarkers();
+        }
         updateAnalytics();
         updateFleetMarkers();
       }
@@ -1708,7 +1802,22 @@
       markers[id] = L.marker([lat, lng], {
         icon: L.divIcon({ className: '', html: markerHtml, iconSize: [30, 30], iconAnchor: [15, 30] })
       }).bindPopup(`<b>${bin.nickname || id}</b><br>Fill: ${pct}%<br>Status: ${s.label}`);
-      markerGroup.addLayer(markers[id]);
+    }
+
+    // Always ensure visibility logic is handled, even for existing markers
+    let targetBinIds = null;
+    if (currentUser && currentUser.role === 'driver') {
+      targetBinIds = currentUser.assignedBins || [];
+    } else if (mapDriverFilter !== 'all') {
+      const targetDriver = teamData.find(u => u._id === mapDriverFilter);
+      targetBinIds = targetDriver ? (targetDriver.assignedBins || []) : [];
+    }
+    
+    const isVisible = targetBinIds ? targetBinIds.includes(id) : true;
+    if (isVisible) {
+      if (!markerGroup.hasLayer(markers[id])) markerGroup.addLayer(markers[id]);
+    } else {
+      if (markerGroup.hasLayer(markers[id])) markerGroup.removeLayer(markers[id]);
     }
   }
 
