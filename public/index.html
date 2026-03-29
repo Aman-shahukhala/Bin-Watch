@@ -13,6 +13,7 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   
   <link rel="manifest" href="/manifest.json">
@@ -679,23 +680,26 @@
       <div class="history-scroll-wrap">
         <table class="history-table">
           <thead>
-            <tr>
-              <th>Bin Nickname</th>
-              <th>Current Load</th>
-              <th>Trend</th>
-              <th>Predicted 100%</th>
-              <th>Assignment</th>
-            </tr>
-          </thead>
-          <tbody id="analytics-table-body">
-            <!-- Data dynamically here -->
-          </tbody>
-        </table>
+        <div class="history-scroll-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Bin Nickname</th>
+                <th>Current Load</th>
+                <th>Trend</th>
+                <th>Predicted 100%</th>
+                <th>Assignment</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-table-body">
+              <!-- Data dynamically here -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- TEAM VIEW -->
   <div id="view-team" class="view">
     <div class="detail-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:16px;">
@@ -707,7 +711,6 @@
           <i data-lucide="user-plus" style="width:16px;"></i> Add Team Member
         </button>
       </div>
-
       <div class="history-scroll-wrap">
         <table class="history-table">
           <thead>
@@ -719,8 +722,13 @@
             </tr>
           </thead>
           <tbody id="team-table-body">
-            <!-- Staff here -->
+            <tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">Synchronizing staff database...</td></tr>
           </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
         </table>
       </div>
     </div>
@@ -1107,21 +1115,22 @@
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
-    document.getElementById('view-' + view).classList.add('active');
-    const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.toLowerCase().includes(view.replace('view-','')));
+    const target = document.getElementById('view-' + view);
+    if (!target) { console.error(`[System] View "${view}" not found.`); return; }
+    
+    target.classList.add('active');
+    
+    const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.onclick && b.onclick.toString().includes(view));
     if (btn) btn.classList.add('active');
 
     currentView = view;
     if (view === 'map') {
-      // Show/hide mobile bottom-sheet handle based on screen size
       const handle = document.getElementById('map-sidebar-handle');
       if (handle) handle.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
 
-      // Wait for browser to paint the now-visible container before Leaflet measures it
       requestAnimationFrame(() => {
         setTimeout(() => {
           if (typeof L === 'undefined') {
-            // Leaflet not yet loaded - retry after a bit longer
             setTimeout(() => { if (!map && typeof L !== 'undefined') initMap(); if (map) map.invalidateSize(); }, 800);
           } else {
             if (!map) initMap();
@@ -1132,8 +1141,10 @@
         }, 100);
       });
     }
+    
     if (view === 'analytics') updateAnalytics();
-    if (view === 'team') fetchTeam();
+    if (view === 'team' && currentUser && currentUser.role === 'admin') fetchTeam();
+    if (view === 'settings' && currentUser && currentUser.role === 'admin') loadSettings();
   }
 
   function toggleMapSidebar() {
@@ -1895,7 +1906,8 @@
       routeWhileDragging: false,
       addWaypoints: false,
       lineOptions: { styles: [{ color: 'var(--accent-green)', weight: 6, opacity: 0.8 }] },
-      createMarker: () => null // Use existing markers
+      createMarker: () => null, // Use existing markers
+      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' })
     }).addTo(map);
 
     // Hide normal list, show routing panel
@@ -1983,16 +1995,16 @@
     const ctx = document.getElementById(`chart-${id}`);
     if (!ctx) return;
     
-    // OPTIMIZATION: Only update Chart.js if history length or last value changed
+    // Convert history points to { x: Time, y: Fill } for linear spacing
+    const chartData = history.map(h => ({ x: h.timestamp, y: h.fill }));
     const chart = charts[id];
     const lastVal = history[history.length - 1].fill;
     
     if (chart) {
       const isStale = chart.lastLen !== history.length || chart.lastVal !== lastVal;
-      if (!isStale) return; // Skip expensive repaint
+      if (!isStale) return; 
       
-      chart.data.labels = history.map(h => h.time);
-      chart.data.datasets[0].data = history.map(h => h.fill);
+      chart.data.datasets[0].data = chartData;
       chart.lastLen = history.length;
       chart.lastVal = lastVal;
       chart.update('none');
@@ -2000,9 +2012,8 @@
       charts[id] = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: history.map(h => h.time),
           datasets: [{
-            data: history.map(h => h.fill),
+            data: chartData,
             borderColor: '#4ADE80',
             borderWidth: 2,
             pointRadius: 0,
@@ -2016,7 +2027,7 @@
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { display: false },
+            x: { type: 'time', display: false },
             y: { min: 0, max: 100, ticks: { display: false }, grid: { display: false } }
           }
         }
@@ -2074,17 +2085,21 @@
       `;
     }).join('');
 
-    // Chart Rendering
+    // Chart Rendering (Time-Linear)
     const ctx = document.getElementById('large-chart');
     if (largeChart) largeChart.destroy();
     
+    const chartData = history.map(h => ({ x: h.timestamp, y: h.fill }));
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    const textColor = isDark ? '#94A3B8' : '#64748B';
+
     largeChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: history.map(h => h.time),
         datasets: [{
           label: 'Fill Level %',
-          data: history.map(h => h.fill),
+          data: chartData,
           borderColor: '#4ADE80',
           borderWidth: 2,
           backgroundColor: 'rgba(74, 222, 128, 0.1)',
@@ -2096,10 +2111,26 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `Fill: ${ctx.raw.y}%`
+            }
+          }
+        },
         scales: {
-          y: { min: 0, max: 100, grid: { color: '#F8FAFC' } },
-          x: { grid: { display: false } }
+          y: { 
+             min: 0, max: 100, 
+             grid: { color: gridColor },
+             ticks: { color: textColor }
+          },
+          x: { 
+             type: 'time',
+             time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+             grid: { display: false },
+             ticks: { color: textColor }
+          }
         }
       }
     });
