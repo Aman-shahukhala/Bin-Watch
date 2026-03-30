@@ -56,6 +56,19 @@ app.use(session({
 }));
 
 app.use(express.json());
+
+// Global Mutation Blocking for Demo Mode
+app.use((req, res, next) => {
+  if (process.env.ENABLE_DEMO === 'true' && process.env.DEMO_USERNAME) {
+    if (req.session && req.session.username === process.env.DEMO_USERNAME) {
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !req.originalUrl.startsWith('/auth/')) {
+        return res.status(403).json({ error: "Action disabled in Demo Mode." });
+      }
+    }
+  }
+  next();
+});
+
 app.use("/auth", authRoutes);
 app.use("/api/settings", authMiddleware, settingsRoutes);
 app.use("/api/team", authMiddleware, teamRoutes);

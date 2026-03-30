@@ -20,6 +20,7 @@ exports.login = async (req, res) => {
     const isAdmin = user.username === 'admin' && (!user.role || user.role === undefined);
     const role = isAdmin ? 'admin' : user.role;
     req.session.userId = user._id.toString();
+    req.session.username = user.username;
     req.session.role = role;
     req.session.assignedBins = user.assignedBins || [];
     req.session.save((err) => {
@@ -77,7 +78,22 @@ exports.seedAdmin = async () => {
       await User.updateOne({ username: 'admin' }, { $set: { role: 'admin' } });
       console.log("[AUTH] Admin role patched in database.");
     }
+
+    if (process.env.ENABLE_DEMO === 'true' && process.env.DEMO_USERNAME && process.env.DEMO_PASSWORD) {
+      let demo = await User.findOne({ username: process.env.DEMO_USERNAME });
+      if (!demo) {
+        demo = new User({ username: process.env.DEMO_USERNAME, password: process.env.DEMO_PASSWORD, role: 'admin' });
+        await demo.save();
+        console.log(`[AUTH] Demo Mode ENABLED. Demo user '${process.env.DEMO_USERNAME}' seeded.`);
+      } else {
+        // Automatically patch password and role on startup if the demo user already exists
+        demo.password = process.env.DEMO_PASSWORD;
+        demo.role = 'admin';
+        await demo.save();
+      }
+    }
+
   } catch (err) {
-    console.error("[AUTH] Error seeding admin:", "An error occurred during database setup");
+    console.error("[AUTH] Error seeding admin/demo:", "An error occurred during database setup");
   }
 };
