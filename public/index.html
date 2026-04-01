@@ -1935,7 +1935,7 @@
       // Nav Tabs
       document.getElementById('nav-team').style.display = (isAdmin || isDemo) ? 'flex' : 'none';
       document.getElementById('nav-settings').style.display = (isAdmin || isDemo) ? 'flex' : 'none';
-      document.getElementById('admin-driver-filter').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('admin-driver-filter').style.display = (isAdmin || isDemo) ? 'block' : 'none';
 
       // Dashboard Buttons
       document.querySelectorAll('.admin-only').forEach(el => {
@@ -1943,7 +1943,7 @@
       });
 
       if (isAdmin || isDemo) {
-        if (isAdmin) fetchTeam();
+        fetchTeam();
         updateMapSidebar();
         document.getElementById('global-stats-row').style.display = 'grid';
       } else {
@@ -2183,10 +2183,10 @@
     function restartPolling() {
       if (pollingTimer) clearInterval(pollingTimer);
       fetchData();
-      if (currentUser && currentUser.role === 'admin') fetchTeam(); // keep fleet data live
+      if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'demo')) fetchTeam(); // keep fleet data live
       pollingTimer = setInterval(() => {
         fetchData();
-        if (currentUser && currentUser.role === 'admin') fetchTeam();
+        if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'demo')) fetchTeam();
       }, systemSettings.pollingInterval * 1000);
     }
 
@@ -2215,15 +2215,15 @@
               if (!map) initMap();
               if (map) map.invalidateSize();
             }
-            if (currentUser && currentUser.role === 'admin') fetchTeam();
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'demo')) fetchTeam();
             updateMapSidebar();
           }, 100);
         });
       }
 
       if (view === 'analytics') updateAnalytics();
-      if (view === 'team' && currentUser && currentUser.role === 'admin') fetchTeam();
-      if (view === 'settings' && currentUser && currentUser.role === 'admin') loadSettings();
+      if (view === 'team' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'demo')) fetchTeam();
+      if (view === 'settings' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'demo')) loadSettings();
 
       // Ensure map handles mode correctly on view switch
       if (view === 'map' && map) setTimeout(() => map.invalidateSize(), 100);
@@ -2992,8 +2992,8 @@
         updateIndoorLayers();
       } else {
         map = L.map('map').setView([lat, lng], 17);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
       }
 

@@ -9,6 +9,20 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: "Invalid input format" });
     }
 
+    // CHECK FOR DEMO MODE LOGIN (OPT-IN VIA ENV)
+    if (process.env.ENABLE_DEMO === 'true' && 
+        username === process.env.DEMO_USERNAME && 
+        password === process.env.DEMO_PASSWORD) {
+      
+      req.session.userId = 'demo-session'; // persistent session marker
+      req.session.role = 'demo';
+      req.session.assignedBins = [];
+      return req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session establishment failed" });
+        res.json({ success: true, role: 'demo' });
+      });
+    }
+
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: "Invalid username or password" });
@@ -37,6 +51,14 @@ exports.login = async (req, res) => {
 exports.me = async (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
   try {
+    if (req.session.role === 'demo') {
+      return res.json({
+        username: process.env.DEMO_USERNAME || "Visitor",
+        role: 'demo',
+        assignedBins: []
+      });
+    }
+
     const user = await User.findById(req.session.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
     
