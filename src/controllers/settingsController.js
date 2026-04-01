@@ -14,6 +14,7 @@ exports.getSettings = async (req, res) => {
 };
 
 exports.updateSettings = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   try {
     const { pollingInterval, emailAlertsEnabled, alertThreshold, receiverEmail, soundAlertsEnabled, depotLat, depotLng, systemMode, buildingName } = req.body;
     const settings = await Settings.findOneAndUpdate(

@@ -118,6 +118,7 @@ exports.getBins = async (req, res) => {
 };
 
 exports.renameBin = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
     const { id, nickname, binHeight, binType, floor, x, y, lat, lng } = req.body;
     try {
@@ -140,6 +141,7 @@ exports.renameBin = async (req, res) => {
 };
 
 exports.deleteBin = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   try {
     await Bin.deleteOne({ id: req.params.id });
@@ -150,6 +152,7 @@ exports.deleteBin = async (req, res) => {
 };
 
 exports.resetHistory = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   try {
     await Bin.updateOne({ id: req.params.id }, { $set: { history: [] } });

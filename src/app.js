@@ -27,8 +27,8 @@ app.use(helmet({
       "script-src-attr": ["'unsafe-inline'"], // Required for onclick="..." handlers
       "style-src":   ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://fonts.googleapis.com"],
       "font-src":    ["'self'", "https://fonts.gstatic.com"],
-      "img-src":     ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
-      "connect-src": ["'self'", "blob:", "https://router.project-osrm.org", "https://unpkg.com", "https://*.tile.openstreetmap.org", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      "img-src":     ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://*.tile.openstreetmap.fr", "https://unpkg.com", "https://server.arcgisonline.com", "https://*.basemaps.cartocdn.com"],
+      "connect-src": ["'self'", "blob:", "https://router.project-osrm.org", "https://unpkg.com", "https://*.tile.openstreetmap.org", "https://*.tile.openstreetmap.fr", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://server.arcgisonline.com", "https://*.basemaps.cartocdn.com"],
       "worker-src":  ["'self'", "blob:"],
       "upgrade-insecure-requests": null,
     },

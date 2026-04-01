@@ -1,7 +1,8 @@
 const User = require('../models/User');
 
 exports.getStaff = async (req, res) => {
-  if (req.session.role !== 'admin' && req.session.userId !== 'admin') {
+  const isAllowed = req.session.role === 'admin' || req.session.role === 'demo' || req.session.userId === 'admin';
+  if (!isAllowed) {
      const u = await User.findById(req.session.userId);
      if (!u || u.username !== 'admin') return res.status(403).json({ error: "Access denied" });
   }
@@ -14,6 +15,7 @@ exports.getStaff = async (req, res) => {
 };
 
 exports.addStaff = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   if (req.session.role !== 'admin' && req.session.userId !== 'admin') {
      const u = await User.findById(req.session.userId);
      if (!u || u.username !== 'admin') return res.status(403).json({ error: "Access denied" });
@@ -35,6 +37,7 @@ exports.addStaff = async (req, res) => {
 };
 
 exports.removeStaff = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   try {
     const { id } = req.params;
@@ -50,6 +53,7 @@ exports.removeStaff = async (req, res) => {
 };
 
 exports.updateStaff = async (req, res) => {
+  if (req.session.role === 'demo') return res.status(403).json({ error: "Action disabled in Demo Mode" });
   if (req.session.role !== 'admin') return res.status(403).json({ error: "Access denied: Admin only" });
   try {
     const { id } = req.params;

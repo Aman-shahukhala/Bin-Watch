@@ -834,6 +834,44 @@
       color: var(--ctl-btn-color);
     }
 
+    /* Settings Reorganization Styles */
+    .settings-section {
+      margin-bottom: 40px;
+    }
+    .settings-section:last-child {
+      margin-bottom: 0;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--log-border);
+    }
+    .section-header i {
+      color: var(--accent-green);
+    }
+    .section-header h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0;
+    }
+    .settings-grid-v2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .action-grid-v2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
     footer {
       background: var(--header);
       padding: 16px 32px;
@@ -1021,8 +1059,8 @@
         grid-template-columns: 1fr;
       }
 
-      .settings-grid {
-        grid-template-columns: 1fr;
+      .settings-grid, .settings-grid-v2, .action-grid-v2 {
+        grid-template-columns: 1fr !important;
       }
 
       .map-container {
@@ -1181,6 +1219,109 @@
         opacity: 0;
       }
     }
+    /* --- SETTINGS CATEGORIZATION & ALIGNMENT --- */
+    .settings-section {
+      background: var(--card-bg);
+      border: 1px solid var(--section-border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--section-border);
+      color: var(--accent-green);
+    }
+
+    .section-header h3 {
+      font-family: 'Nunito';
+      font-weight: 800;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .settings-grid-v2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .settings-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .settings-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .settings-group input {
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-main);
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .settings-group input:focus {
+      border-color: var(--accent-green);
+      outline: none;
+    }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .action-grid-v2 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .action-btn-v2 {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--toggle-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .action-btn-v2:hover {
+      background: var(--card-border);
+      transform: translateY(-2px);
+    }
+
+    .action-btn-v2 i {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+    }
   </style>
 </head>
 
@@ -1320,8 +1461,8 @@
                 <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:12px;">LOCAL
                   CONTROLS</div>
                 <div style="display:flex; flex-direction:column; gap:10px;">
-                  <button class="test-btn" style="width:100%;" onclick="sendTestAlert()">Trigger Alert Test</button>
-                  <button class="ctl-btn" style="width:100%; padding:12px; background:#FEE2E2; color:#B91C1C;"
+                  <button class="test-btn admin-only" style="width:100%;" onclick="sendTestAlert()">Trigger Alert Test</button>
+                  <button class="ctl-btn admin-only" style="width:100%; padding:12px; background:#FEE2E2; color:#B91C1C;"
                     onclick="resetBinHistory()">Reset Activity History</button>
                 </div>
               </div>
@@ -1492,7 +1633,7 @@
             <p style="color:var(--text-muted); font-size:14px;">Govern access and assign hardware to your collection
               fleet.</p>
           </div>
-          <button class="test-btn" onclick="openAddStaffModal()"
+          <button class="test-btn admin-only" onclick="openAddStaffModal()"
             style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px;">
             <i data-lucide="user-plus" style="width:16px;"></i> Add Team Member
           </button>
@@ -1518,16 +1659,19 @@
       </div>
     </div>
     <div id="view-settings" class="view">
-      <div class="stat-card" style="max-width: 800px; margin: 0 auto;">
+      <div class="stat-card" style="max-width: 850px; margin: 0 auto; padding: 40px;">
         <h2 style="font-family: 'Nunito'; font-weight: 800; margin-bottom: 8px;">System Preferences</h2>
-        <p style="color:var(--text-muted); font-size: 14px; margin-bottom: 32px;">Configure global monitoring parameters
-          and logistics settings.</p>
+        <p style="color:var(--text-muted); font-size: 14px; margin-bottom: 40px;">Configure global monitoring parameters, map logistics, and communication protocols.</p>
 
         <form id="settings-form" onsubmit="event.preventDefault(); saveSettings();">
-          <div class="settings-grid">
-            <div class="left-col">
-              <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px;">CORE
-                PARAMETERS</h3>
+          
+          <!-- Category 1: Core Configuration -->
+          <div class="settings-section">
+            <div class="section-header">
+              <i data-lucide="settings" style="width:18px;"></i>
+              <h3>Core Configuration</h3>
+            </div>
+            <div class="settings-grid-v2">
               <div class="settings-group">
                 <label>Polling Interval (Seconds)</label>
                 <input type="number" id="set-polling" min="1" max="60" required>
@@ -1538,92 +1682,105 @@
               </div>
               <div class="settings-group">
                 <label>Global Deployment Mode</label>
-                <select id="set-mode"
-                  style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--text-main);">
+                <select id="set-mode" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--text-main);">
                   <option value="municipality">Municipality (Street Only)</option>
                   <option value="campus">College (Campus Only)</option>
                   <option value="both">Enterprise (Street + Campus)</option>
                 </select>
               </div>
-              <div class="settings-group" style="margin-top: 10px;">
-                <div class="toggle-wrap">
-                  <span>Sound Alerts Enabled</span>
-                  <input type="checkbox" id="set-sound" style="width: 20px; height: 20px;">
+            </div>
+          </div>
+
+          <!-- Category 2: Map & Logistics -->
+          <div class="settings-section">
+            <div class="section-header">
+              <i data-lucide="map" style="width:18px;"></i>
+              <h3>Map & Logistics</h3>
+            </div>
+            <div class="settings-grid-v2" style="grid-template-columns: 1fr 1fr;">
+              <div class="settings-group">
+                <label>Depot Latitude</label>
+                <input type="number" id="set-depot-lat" step="0.000001" required>
+              </div>
+              <div class="settings-group">
+                <label>Depot Longitude</label>
+                <input type="number" id="set-depot-lng" step="0.000001" required>
+              </div>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">
+              <i data-lucide="info" style="width:12px; vertical-align: middle; margin-right: 4px;"></i>
+              Tip: You can also set the depot location directly from the Map view via the Depot marker.
+            </p>
+          </div>
+
+          <!-- Category 3: Notification Hub -->
+          <div class="settings-section">
+            <div class="section-header">
+              <i data-lucide="bell-ring" style="width:18px;"></i>
+              <h3>Notification Hub</h3>
+            </div>
+            <div class="settings-group" style="margin-bottom: 20px;">
+              <label>Receiver Email Address</label>
+              <input type="email" id="set-email" required placeholder="alerts@enterprise.com">
+            </div>
+            
+            <div class="settings-grid-v2" style="margin-bottom: 24px;">
+              <div class="toggle-wrap" style="padding: 16px; background: var(--toggle-bg); border-radius: 16px; border: 1px solid var(--log-border);">
+                <div>
+                  <div style="font-weight: 700; font-size: 13px;">Email Alerts</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Send critical fill-level reports</div>
                 </div>
+                <input type="checkbox" id="set-email-on" style="width: 22px; height: 22px; cursor: pointer;">
+              </div>
+              <div class="toggle-wrap" style="padding: 16px; background: var(--toggle-bg); border-radius: 16px; border: 1px solid var(--log-border);">
+                <div>
+                  <div style="font-weight: 700; font-size: 13px;">Audible Alarms</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Play sound on threshold breach</div>
+                </div>
+                <input type="checkbox" id="set-sound" style="width: 22px; height: 22px; cursor: pointer;">
               </div>
             </div>
 
-            <div class="right-col">
-              <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px;">
-                NOTIFICATIONS & DEPOT</h3>
-              <div class="settings-group">
-                <label>Receiver Email Address</label>
-                <input type="email" id="set-email" required>
+            <div class="action-grid-v2">
+              <button type="button" class="action-btn-v2 admin-only" onclick="playAlertSound()">
+                <i data-lucide="volume-2"></i>Test Alarm
+              </button>
+              <button type="button" id="notif-btn" class="action-btn-v2 admin-only" onclick="requestNotificationPermission()">
+                <i data-lucide="monitor"></i>Desktop Alerts
+              </button>
+              <button type="button" id="test-notif-btn" class="action-btn-v2 admin-only" onclick="sendTestPush()">
+                <i data-lucide="zap"></i>Test Push
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 4: Appearance -->
+          <div class="settings-section" style="margin-bottom: 50px;">
+            <div class="section-header">
+              <i data-lucide="palette" style="width:18px;"></i>
+              <h3>Interface Preferences</h3>
+            </div>
+            <div class="toggle-wrap" style="background: var(--toggle-bg); padding: 20px; border-radius: 20px; border: 1px solid var(--log-border);">
+              <div>
+                <div style="font-weight: 700;">Theme Selection</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Sync style with your environment or OS</div>
               </div>
-              <div class="settings-grid" style="gap: 10px;">
-                <div class="settings-group">
-                  <label>Depot Lat</label>
-                  <input type="number" id="set-depot-lat" step="0.000001" required>
-                </div>
-                <div class="settings-group">
-                  <label>Depot Lng</label>
-                  <input type="number" id="set-depot-lng" step="0.000001" required>
-                </div>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                <div style="display: flex; gap: 10px;">
-                  <div class="toggle-wrap" style="flex: 1;">
-                    <span>Email Notifications</span>
-                    <input type="checkbox" id="set-email-on" style="width: 20px; height: 20px;">
-                  </div>
-                  <button type="button" class="ctl-btn"
-                    style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border);"
-                    onclick="playAlertSound()">Test Alarm</button>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                  <button type="button" id="notif-btn" class="ctl-btn"
-                    style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--toggle-bg); display: flex; align-items: center; justify-content: center; gap: 8px;"
-                    onclick="requestNotificationPermission()">
-                    <i data-lucide="bell-ring" style="width:16px;"></i> Enable Desktop Alerts
-                  </button>
-                  <button type="button" id="test-notif-btn" class="ctl-btn"
-                    style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--toggle-bg); display: flex; align-items: center; justify-content: center; gap: 8px;"
-                    onclick="sendTestPush()">
-                    <i data-lucide="send" style="width:16px;"></i> Test Push
-                  </button>
-                </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="theme-btn-light" class="ctl-btn" onclick="setTheme('light')" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--card-border); display:flex; align-items:center; justify-content:center;">
+                  <i data-lucide="sun" style="width:20px;"></i>
+                </button>
+                <button type="button" id="theme-btn-dark" class="ctl-btn" onclick="setTheme('dark')" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--card-border); display:flex; align-items:center; justify-content:center;">
+                  <i data-lucide="moon" style="width:20px;"></i>
+                </button>
+                <button type="button" id="theme-btn-auto" class="ctl-btn" onclick="setTheme('auto')" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--card-border); display:flex; align-items:center; justify-content:center;">
+                  <i data-lucide="laptop" style="width:20px;"></i>
+                </button>
               </div>
             </div>
           </div>
 
-          <div style="margin-top: 32px; border-top: 1px solid var(--table-border); padding-top: 24px;">
-            <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px;">APPEARANCE
-            </h3>
-            <div class="toggle-wrap" style="margin-bottom: 24px;">
-              <div>
-                <div style="font-weight: 700;">Theme Mode</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Stealth Dark / Classic Light /
-                  Auto (System)</div>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <button type="button" id="theme-btn-light" class="ctl-btn" onclick="setTheme('light')"
-                  title="Light Mode"
-                  style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--card-border);">
-                  <i data-lucide="sun" style="width:18px;height:18px;"></i>
-                </button>
-                <button type="button" id="theme-btn-dark" class="ctl-btn" onclick="setTheme('dark')" title="Dark Mode"
-                  style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--card-border);">
-                  <i data-lucide="moon" style="width:18px;height:18px;"></i>
-                </button>
-                <button type="button" id="theme-btn-auto" class="ctl-btn" onclick="setTheme('auto')" title="Auto Mode"
-                  style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--card-border);">
-                  <i data-lucide="laptop" style="width:18px;height:18px;"></i>
-                </button>
-              </div>
-            </div>
-            <div style="display: flex; justify-content: flex-end;">
-              <button type="submit" class="test-btn" style="padding: 12px 40px;">Save Settings</button>
-            </div>
+          <div style="display: flex; justify-content: flex-end; padding-top: 24px; border-top: 1px solid var(--log-border);">
+            <button type="submit" class="test-btn admin-only" style="padding: 14px 48px; border-radius: 14px; font-size: 14px;">Apply System Changes</button>
           </div>
         </form>
       </div>
@@ -1632,7 +1789,7 @@
 
   <footer>
     <div id="footer-status">Scanning for IoT nodes...</div>
-    <button class="test-btn" onclick="sendTestAlert()">Test Signal</button>
+    <button class="test-btn admin-only" onclick="sendTestAlert()">Test Signal</button>
   </footer>
 
   <!-- Toast Notification Container -->
@@ -1773,25 +1930,34 @@
     function updateUIVisibility() {
       if (!currentUser) return;
       const isAdmin = currentUser.role === 'admin';
+      const isDemo = currentUser.role === 'demo';
 
       // Nav Tabs
-      document.getElementById('nav-team').style.display = isAdmin ? 'flex' : 'none';
-      document.getElementById('nav-settings').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('nav-team').style.display = (isAdmin || isDemo) ? 'flex' : 'none';
+      document.getElementById('nav-settings').style.display = (isAdmin || isDemo) ? 'flex' : 'none';
       document.getElementById('admin-driver-filter').style.display = isAdmin ? 'block' : 'none';
 
       // Dashboard Buttons
       document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = isAdmin ? 'inline-flex' : 'none';
+        el.style.display = (isAdmin || isDemo) ? 'inline-flex' : 'none';
       });
 
-      if (isAdmin) {
-        fetchTeam();
+      if (isAdmin || isDemo) {
+        if (isAdmin) fetchTeam();
         updateMapSidebar();
         document.getElementById('global-stats-row').style.display = 'grid';
       } else {
         document.getElementById('global-stats-row').style.display = 'none';
         updateMapSidebar();
       }
+    }
+
+    function checkShowcaseAccess() {
+      if (currentUser && currentUser.role === 'demo') {
+        showToast("⚠️ Action disabled in Demo Mode", "var(--accent-amber)");
+        return false;
+      }
+      return true;
     }
 
     checkRole();
@@ -1862,6 +2028,7 @@
       osc.stop(audioCtx.currentTime + 0.5);
 
       showToast("🔔 Test Alarm Playback Stimulated", 'var(--accent-amber)');
+      showNativeNotification("Diagnostic: Audible Alarm", "Audible and visual alert systems are functioning correctly.");
     }
 
     function requestNotificationPermission() {
@@ -1869,8 +2036,18 @@
         showToast("Browser does not support notifications", "var(--accent-red)");
         return;
       }
+
+      if (Notification.permission === "denied") {
+        showToast("❌ Permission Denied. Reset site settings to enable alerts.", "var(--accent-red)");
+        return;
+      }
+
       Notification.requestPermission().then(async (permission) => {
         if (permission === "granted") {
+          showNativeNotification("Success!", "Desktop Alerts are now active. You will be notified of critical bin levels.");
+          showToast("Live Dashboard Alerts Enabled!", "var(--accent-green)");
+          
+          // Background Push Subscription (Silent/Optional)
           try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.subscribe({
@@ -1883,13 +2060,12 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(subscription)
             });
-
-            showToast("Live Dashboard Alerts Enabled!", "var(--accent-green)");
             document.getElementById('notif-btn').style.display = 'none';
           } catch (err) {
-            console.error("Push Subscription Error:", err);
-            showToast("Push Registration Failed", "var(--accent-red)");
+            console.warn("Push subscription failed, but local notifications will still work.");
           }
+        } else {
+          showToast("Notification permission requested.", "var(--accent-blue)");
         }
       });
     }
@@ -1901,10 +2077,22 @@
     }
 
     let calibrationState = { active: false, binId: null };
+    function enterDepotCalibrationMode() {
+      if (!checkShowcaseAccess()) return;
+      calibrationState = { active: true, binId: 'DEPOT' };
+      switchView('map');
+      document.getElementById('calibration-hud').style.display = 'flex';
+      document.getElementById('calibration-hud').querySelector('span').textContent = "DEPOT PLACEMENT MODE: Click Spot on Map";
+      document.getElementById('map').classList.add('map-calibrating');
+      showToast("Click any spot on the map to set Depot location", "var(--accent-amber)");
+      if (window.lucide) lucide.createIcons();
+    }
 
     function enterCalibrationMode(id) {
+      if (!checkShowcaseAccess()) return;
       calibrationState = { active: true, binId: id };
       document.getElementById('calibration-hud').style.display = 'flex';
+      document.getElementById('calibration-hud').querySelector('span').textContent = `PLACEMENT MODE: Select New Spot for ${binsData[id].nickname || id}`;
       document.getElementById('map').classList.add('map-calibrating');
       if (map) map.closePopup();
       showToast(`Click any spot on the map to set location for ${binsData[id].nickname || id}`, "var(--accent-amber)");
@@ -1914,6 +2102,7 @@
     function exitCalibrationMode() {
       calibrationState = { active: false, binId: null };
       document.getElementById('calibration-hud').style.display = 'none';
+      document.getElementById('calibration-hud').querySelector('span').textContent = "PLACEMENT MODE: Select New Spot on Map";
       document.getElementById('map').classList.remove('map-calibrating');
     }
 
@@ -1948,6 +2137,7 @@
     }
 
     async function saveSettings() {
+      if (!checkShowcaseAccess()) return;
       const updated = {
         pollingInterval: parseInt(document.getElementById('set-polling').value),
         alertThreshold: parseInt(document.getElementById('set-threshold').value),
@@ -2040,12 +2230,19 @@
     }
 
     async function sendTestPush() {
+      if (!checkShowcaseAccess()) return;
       try {
+        if (Notification.permission === "granted") {
+          showNativeNotification("Diagnostic: Remote Push Service", "This is a local verification of the visual alert system. A remote push event has also been triggered.");
+        } else {
+          showToast("Desktop Alerts are not enabled. Click the button above to authorize.", "var(--accent-amber)");
+        }
+        
         showToast("Sending test notification...", "var(--accent-green)");
         const res = await fetch('/api/notifications/test', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          showToast("Test notification delivered!", "var(--accent-green)");
+          showToast("Remote push delivered", "var(--accent-green)");
         } else {
           showToast(data.error || "Failed to send test push", "var(--accent-red)");
         }
@@ -2344,6 +2541,7 @@
     }
 
     async function saveStaff() {
+      if (!checkShowcaseAccess()) return;
       const username = document.getElementById('staff-username').value;
       const password = document.getElementById('staff-password').value;
       const role = document.getElementById('staff-role').value;
@@ -2367,6 +2565,7 @@
     }
 
     async function removeStaff(id) {
+      if (!checkShowcaseAccess()) return;
       if (!confirm('Remove this user?')) return;
       try {
         const res = await fetch(`/api/team/${id}`, { method: 'DELETE' });
@@ -2384,14 +2583,13 @@
       document.querySelectorAll('.hub-filter-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`hub-${hub.toLowerCase()}`).classList.add('active');
 
-      // Sync with Global Mode
-      if (!silent && (hub === 'street' || hub === 'campus')) {
-        systemSettings.systemMode = hub === 'street' ? 'municipality' : 'campus';
-        saveSettings(); // Persist selection
-        toggleMapDeploymentMode(systemSettings.systemMode);
-      } else if (!silent && hub === 'all' && systemSettings.systemMode === 'campus') {
-        // In ALL view with campus artifacts, ensure we don't switch away but show all markers
+      // Sync with Global Mode (Localized Action)
+      if (hub === 'street' || hub === 'campus') {
+        toggleMapDeploymentMode(hub === 'street' ? 'municipality' : 'campus');
+      } else if (hub === 'all' && systemSettings.systemMode === 'campus') {
         toggleMapDeploymentMode('campus');
+      } else if (hub === 'all') {
+        toggleMapDeploymentMode(systemSettings.systemMode);
       }
 
       updateMapSidebar();
@@ -2794,18 +2992,38 @@
         updateIndoorLayers();
       } else {
         map = L.map('map').setView([lat, lng], 17);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
         }).addTo(map);
       }
+
+      // Ensure Lucide icons render in popups
+      map.on('popupopen', () => {
+        if (window.lucide) lucide.createIcons();
+      });
 
       // Interactive Placement / Calibration Listener
       map.on('click', async (e) => {
         if (!calibrationState.active || !calibrationState.binId) return;
 
         const id = calibrationState.binId;
-        const bin = binsData[id];
         const { lat, lng } = e.latlng;
+
+        if (id === 'DEPOT') {
+          document.getElementById('set-depot-lat').value = lat.toFixed(6);
+          document.getElementById('set-depot-lng').value = lng.toFixed(6);
+          
+          // Update local state to prevent immediate polling snap-back
+          systemSettings.depotLat = lat;
+          systemSettings.depotLng = lng;
+          
+          showToast("Updating Depot Location...", "var(--accent-blue)");
+          saveSettings(); // This persists to DB and triggers updateDepotPointer()
+          exitCalibrationMode();
+          return;
+        }
+
+        const bin = binsData[id];
 
         let updatePayload = {
           id,
@@ -2881,8 +3099,8 @@
           ${isPredictive ? `<div style="font-size:11px; color:var(--accent-amber); font-weight:700; margin-top:4px;">⚠️ Predicted Full in ${Math.round(pred.hours)}h</div>` : ''}
           <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Last seen: ${b.last_updated}</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
-            <button class="test-btn" style="width:100%; font-size:10px; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="openDetail('${b.id}')"><i data-lucide="bar-chart-2" style="width:12px;"></i> Analytics</button>
-            <button class="test-btn" style="width:100%; font-size:10px; background:var(--accent-amber); display:flex; align-items:center; justify-content:center; gap:4px;" onclick="enterCalibrationMode('${b.id}')"><i data-lucide="map-pin" style="width:12px;"></i> Pin on Map</button>
+            <button class="test-btn admin-only" style="width:100%; font-size:10px; display:flex; align-items:center; justify-content:center; gap:4px;" onclick="openDetail('${b.id}')"><i data-lucide="bar-chart-2" style="width:12px;"></i> Analytics</button>
+            <button class="test-btn admin-only" style="width:100%; font-size:10px; background:var(--accent-amber); display:flex; align-items:center; justify-content:center; gap:4px;" onclick="enterCalibrationMode('${b.id}')"><i data-lucide="map-pin" style="width:12px;"></i> Pin on Map</button>
           </div>
         </div>
       `);
@@ -2913,7 +3131,13 @@
             html: `<div style="background:#1A1A2E; color:white; padding:5px 10px; border-radius:8px; font-weight:700; font-size:10px; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.2)">DEPOT</div>`,
             iconSize: [60, 25]
           })
-        }).addTo(map);
+        }).bindPopup(`
+          <div style="font-family:'DM Sans'; padding:4px;">
+            <h3 style="font-size:16px; margin-bottom:4px;">System Depot</h3>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Base of operations for fleet collection.</div>
+            <button class="test-btn admin-only" style="width:100%; font-size:10px; background:var(--accent-amber); display:flex; align-items:center; justify-content:center; gap:4px;" onclick="enterDepotCalibrationMode()"><i data-lucide="map-pin" style="width:12px;"></i> Pin on Map</button>
+          </div>
+        `).addTo(map);
       }
 
       if (currentView === 'map') map.panTo(pos);
@@ -2942,8 +3166,8 @@
             <div class="bin-id-label">${id}</div>
           </div>
           <div class="bin-controls" onclick="event.stopPropagation()">
-            <button class="ctl-btn" onclick="openRename('${id}')">Setup</button>
-            <button class="ctl-btn del" onclick="deleteBin('${id}')">X</button>
+            <button class="ctl-btn admin-only" onclick="openRename('${id}')">Setup</button>
+            <button class="ctl-btn del admin-only" onclick="deleteBin('${id}')">X</button>
           </div>
         </div>
         <div class="bin-body">
@@ -3278,6 +3502,7 @@
     }
     function closeModal() { document.getElementById('rename-modal').style.display = 'none'; }
     async function saveRename() {
+      if (!checkShowcaseAccess()) return;
       const nickname = document.getElementById('rename-input').value;
       const binHeight = parseInt(document.getElementById('height-input').value);
       const binType = document.getElementById('type-input').value;
@@ -3299,6 +3524,7 @@
     }
 
     async function deleteBin(id) {
+      if (!checkShowcaseAccess()) return;
       if (confirm(`Purge ${id}?`)) {
         const res = await fetch(`/bin/${id}`, { method: 'DELETE' });
         if (res.ok) {
@@ -3472,6 +3698,7 @@
     }
 
     async function sendTestAlert() {
+      if (!checkShowcaseAccess()) return;
       showToast("Triggering test alert...", "var(--accent-amber)");
       try {
         await fetch('/test-alert', { method: 'POST' });
@@ -3483,6 +3710,7 @@
     }
 
     async function resetBinHistory() {
+      if (!checkShowcaseAccess()) return;
       if (!activeBinId) return;
       if (confirm('Are you sure you want to permanently clear the history timeline for this bin?')) {
         try {
