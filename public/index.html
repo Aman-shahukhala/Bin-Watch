@@ -3018,7 +3018,8 @@
           systemSettings.depotLng = lng;
           
           showToast("Updating Depot Location...", "var(--accent-blue)");
-          saveSettings(); // This persists to DB and triggers updateDepotPointer()
+          updateDepotPointer(); // Immediate UI feedback before save
+          saveSettings(); 
           exitCalibrationMode();
           return;
         }
@@ -3116,7 +3117,9 @@
 
     function updateDepotPointer() {
       if (!map || indoorMapMode) {
-        if (depotMarker) map.removeLayer(depotMarker);
+        if (depotMarker) {
+          try { map.removeLayer(depotMarker); } catch(e){}
+        }
         depotMarker = null;
         return;
       }
@@ -3124,6 +3127,8 @@
 
       if (depotMarker) {
         depotMarker.setLatLng(pos);
+        // CRITICAL FIX: Re-add to map if it was lost during initMap re-creation
+        if (!map.hasLayer(depotMarker)) depotMarker.addTo(map);
       } else {
         depotMarker = L.marker(pos, {
           icon: L.divIcon({
@@ -3140,7 +3145,11 @@
         `).addTo(map);
       }
 
-      if (currentView === 'map') map.panTo(pos);
+      if (currentView === 'map' && map.getBounds().contains(pos)) {
+        // Optional: Only pan if not already in view to avoid jarring jumps
+      } else if (currentView === 'map') {
+        map.panTo(pos);
+      }
     }
 
     function getStatusStyle(pct, lastSeen) {
